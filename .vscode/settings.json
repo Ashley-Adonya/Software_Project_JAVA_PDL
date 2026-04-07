@@ -1,0 +1,21 @@
+{
+  "java.project.sourcePaths": [
+    "src"
+  ],
+  "java.project.referencedLibraries": [
+    "lib/**/*.jar"
+  ],
+  "java.project.outputPath": "out",
+  "java.import.exclusions": [
+    "**/tmp_kola_ui_repo/**",
+    "**/tmp_decompiled/**"
+  ],
+  "files.exclude": {
+    "**/tmp_kola_ui_repo": true,
+    "**/tmp_decompiled": true
+  },
+  "search.exclude": {
+    "**/tmp_kola_ui_repo": true,
+    "**/tmp_decompiled": true
+  }
+}
