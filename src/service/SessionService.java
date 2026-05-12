@@ -4,6 +4,7 @@ import dao.CampaignDAO;
 import dao.SessionDAO;
 import model.Campaign;
 import model.SessionSlot;
+import java.util.Map;
 import java.util.List;
 
 public class SessionService {
@@ -84,6 +85,9 @@ public class SessionService {
         return sessionDAO.searchByDominanteNameAndTime(campaignId, dominanteNameLike, fromMinute, toMinute);
     }
 
+    public Map<Integer, Integer> countAllocationsBySessionForCampaign(int campaignId) {
+        return sessionDAO.countBySessionForCampaign(campaignId);
+    }
     private String validateSession(SessionSlot session) {
         if (session == null) {
             return "Session vide";

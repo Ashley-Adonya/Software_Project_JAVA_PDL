@@ -224,7 +224,7 @@ public class ChoiceDAO {
     }
 
     private void close(AutoCloseable c) {
-        if (c != null) {
+        if (c != null && !(c instanceof java.sql.Connection)) {
             try {
                 c.close();
             } catch (Exception ignored) {

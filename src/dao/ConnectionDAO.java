@@ -22,6 +22,7 @@ public class ConnectionDAO {
 	final static String LOGIN = "C##BDD7_16";   // remplacer les ********. Exemple C##BDD1_1
 	final static String PASS  = "BDD716";   // remplacer les ********. Exemple BDD11
 	
+	private static Connection instanceConn = null;
 	/**
 	 * Constructor
 	 * 
@@ -34,13 +35,22 @@ public class ConnectionDAO {
 			System.err.println("Impossible de charger le pilote de BDD, ne pas oublier d'importer le fichier .jar dans le projet");
 		}
 	}
-	public  static Connection getConnection() {
-		Connection conn = null;
+
+	public static Connection getConnection() {
 		try {
-			conn = java.sql.DriverManager.getConnection(URL, LOGIN, PASS);
+			if (instanceConn != null && !instanceConn.isClosed()) {
+				return instanceConn;
+			}
+			if (instanceConn == null) {
+				try {
+					Class.forName("oracle.jdbc.OracleDriver");
+				} catch (ClassNotFoundException e) {
+				}
+			}
+			instanceConn = java.sql.DriverManager.getConnection(URL, LOGIN, PASS);
 		} catch (java.sql.SQLException e) {
 			System.err.println("Erreur de connexion a la base de donnees : " + e.getMessage());
 		}
-		return conn;
+		return instanceConn;
 	}
 }

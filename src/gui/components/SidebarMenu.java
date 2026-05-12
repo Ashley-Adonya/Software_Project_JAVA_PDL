@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import components.Button;
-import components.ImageComp;
 import components.Label;
 import main.BaseComp;
 
@@ -27,7 +26,7 @@ public class SidebarMenu extends SurfaceCard {
         }
     }
 
-    private final ImageComp logo;
+    private final CachedImageComp logo;
     private final Label appName;
     private final Label roleLabel;
     private final BaseComp avatarComp;
@@ -48,7 +47,7 @@ public class SidebarMenu extends SurfaceCard {
         this.byKey = new HashMap<>();
         this.darkMode = false;
 
-        this.logo = new ImageComp("assets/logo-esigelec.png", 14, 12, 96, 36);
+        this.logo = new CachedImageComp("assets/logo-esigelec.png", 14, 12, 96, 36);
 
         this.appName = new Label("Esigelec", 56, 10, 120, 22);
         this.appName.setFont(new Font("Dialog", Font.BOLD, 18));

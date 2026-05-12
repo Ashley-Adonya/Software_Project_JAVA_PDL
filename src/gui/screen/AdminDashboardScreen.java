@@ -21,6 +21,7 @@ import components.SelectInput;
 import components.TextAreaInput;
 import gui.components.DominanteCardAdmin;
 import gui.components.DominanteOverviewRow;
+import gui.components.ColorPicker;
 import gui.components.KpiCard;
 import gui.components.PageHeader;
 import gui.components.PrimaryButton;
@@ -35,11 +36,11 @@ import model.Campaign;
 import model.Dominante;
 import model.SessionSlot;
 import model.User;
-import dao.DominanteDAO;
-import dao.RegistrationDAO;
 import service.CampaignService;
 import service.ServiceResult;
 import service.SessionService;
+import service.AssignmentService;
+import service.DominanteService;
 
 public class AdminDashboardScreen implements AppScreen {
     private enum Section {
@@ -68,11 +69,12 @@ public class AdminDashboardScreen implements AppScreen {
 
     private final CampaignService campaignService;
     private final SessionService sessionService;
-    private final DominanteDAO dominanteDAO;
-    private final RegistrationDAO registrationDAO;
+    private final DominanteService dominanteService;
+    private final AssignmentService assignmentService;
 
     private final SidebarMenu sidebar;
     private final PageHeader header;
+    private final PrimaryButton refreshButton;
 
     private final BaseComp sectionHost;
 
@@ -91,7 +93,7 @@ public class AdminDashboardScreen implements AppScreen {
     private final SurfaceCard dominanteOverviewCard;
     private final Label dominanteOverviewTitle;
     private final Label dominanteOverviewSubtitle;
-    private final List<DominanteOverviewRow> dominanteRows;
+    private final ArrayList<DominanteOverviewRow> dominanteRows;
     private final SurfaceCard campaignSettingsCard;
     private final Label campaignSettingsTitle;
     private final Label maxChoicesLabel;
@@ -126,11 +128,20 @@ public class AdminDashboardScreen implements AppScreen {
     private final PrimaryButton saveCampaignButton;
     private final PrimaryButton openCampaignButton;
     private final PrimaryButton closeCampaignButton;
+    private final PrimaryButton autoAssignButton;
     private final Label campaignFeedbackLabel;
 
     private Campaign activeCampaign;
     private Section activeSection;
     private boolean dominanteDarkMode;
+    private ArrayList<Dominante> cachedDominantes = new ArrayList<>();
+    private boolean dominantesCacheDirty = true;
+    private ArrayList<SessionSlot> cachedSessions = new ArrayList<>();
+    private int cachedSessionsCampaignId = -1;
+    private boolean sessionsCacheDirty = true;
+    private Map<Integer, Integer> cachedAllocationsBySession = new HashMap<>();
+    private int cachedAllocationsCampaignId = -1;
+    private boolean allocationsCacheDirty = true;
 
     public AdminDashboardScreen(BaseWindow window, User user, Runnable onLogout) {
         this.window = window;
@@ -138,10 +149,10 @@ public class AdminDashboardScreen implements AppScreen {
 
         this.campaignService = new CampaignService();
         this.sessionService = new SessionService();
-        this.dominanteDAO = new DominanteDAO();
-        this.registrationDAO = new RegistrationDAO();
+        this.dominanteService = new DominanteService();
+        this.assignmentService = new AssignmentService();
 
-        List<SidebarMenu.Item> items = new ArrayList<>();
+        ArrayList<SidebarMenu.Item> items = new ArrayList<>();
         items.add(new SidebarMenu.Item("dashboard", "Tableau de bord"));
         items.add(new SidebarMenu.Item("dominantes", "Dominantes"));
         items.add(new SidebarMenu.Item("sessions", "Sessions"));
@@ -151,6 +162,8 @@ public class AdminDashboardScreen implements AppScreen {
                 onLogout, this::toggleGlobalTheme);
 
         this.header = new PageHeader("Tableau de bord", "Vue d'ensemble de la campagne en cours");
+        this.refreshButton = new PrimaryButton("Actualiser", 0, 0, 110, 28, this::refreshCurrentSection);
+        this.refreshButton.setBackground(new Color(44, 54, 76));
 
         this.sectionHost = new BaseComp(null);
 
@@ -284,6 +297,7 @@ public class AdminDashboardScreen implements AppScreen {
         saveCampaignButton = new PrimaryButton("Enregistrer", 16, 250, 130, 34, this::saveCampaignSettings);
         openCampaignButton = new PrimaryButton("Ouvrir", 158, 250, 90, 34, this::openCampaign);
         closeCampaignButton = new PrimaryButton("Fermer", 258, 250, 90, 34, this::closeCampaign);
+        autoAssignButton = new PrimaryButton("Traitement Auto", 358, 250, 140, 34, this::runAutoAssignment);
         campaignFeedbackLabel = new Label("", 16, 288, 420, 16);
         campaignFeedbackLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
         campaignFeedbackLabel.setColor(TEXT_MUTED);
@@ -296,6 +310,7 @@ public class AdminDashboardScreen implements AppScreen {
         campaignFormCard.addChild(saveCampaignButton);
         campaignFormCard.addChild(openCampaignButton);
         campaignFormCard.addChild(closeCampaignButton);
+        campaignFormCard.addChild(autoAssignButton);
         campaignFormCard.addChild(campaignFeedbackLabel);
         campagneContent.addChild(campaignFormCard);
         campagneSection.addChild(campagneScroll);
@@ -311,6 +326,7 @@ public class AdminDashboardScreen implements AppScreen {
         clearChildren(content);
         content.addChild(sidebar);
         content.addChild(header);
+        content.addChild(refreshButton);
         content.addChild(sectionHost);
 
         refreshAllData();
@@ -331,6 +347,7 @@ public class AdminDashboardScreen implements AppScreen {
         int mainW = Math.max(320, w - mainX - 16);
 
         header.setBounds(mainX, 18, mainW, 52);
+        refreshButton.setBounds(mainX + mainW - 110, 24, 110, 28);
         sectionHost.setBounds(mainX, 82, mainW, h - 98);
 
         dashboardSection.setBounds(0, 0, mainW, sectionHost.getHeight());
@@ -342,19 +359,19 @@ public class AdminDashboardScreen implements AppScreen {
         layoutDominantes(mainW);
         layoutSessions(mainW);
         layoutCampagne(mainW);
-        refreshWidthSensitiveSection();
+        relayoutActiveSection();
 
         window.invalidateAll();
         window.requestRenderIfNeeded();
     }
 
-    private void refreshWidthSensitiveSection() {
+    private void relayoutActiveSection() {
         if (activeSection == Section.DOMINANTES) {
-            refreshDominantesView();
+            relayoutDominantesList();
             return;
         }
         if (activeSection == Section.SESSIONS) {
-            refreshSessionsView();
+            relayoutSessionsList();
         }
     }
 
@@ -413,6 +430,53 @@ public class AdminDashboardScreen implements AppScreen {
         sessionsScroll.setBounds(0, 126, mainW, Math.max(220, sectionHost.getHeight() - 126));
     }
 
+    private void relayoutDominantesList() {
+        int containerWidth = Math.max(300, dominantesScroll.getWidth());
+        int gap = 12;
+        int cardW = (containerWidth - gap) / 2;
+        int cardH = 220;
+
+        int idx = 0;
+        for (BaseComp child : dominantesList.getChildrenList()) {
+            if (child instanceof DominanteCardAdmin) {
+                int x = (idx % 2) * (cardW + gap);
+                int y = (idx / 2) * (cardH + gap);
+                child.setBounds(x, y, cardW, cardH);
+                idx++;
+                continue;
+            }
+            if (child instanceof Label) {
+                child.setBounds(0, 8, Math.max(260, containerWidth - 16), 22);
+            }
+        }
+
+        int rows = (int) Math.ceil(Math.max(1, idx) / 2.0);
+        int contentHeight = rows * (cardH + gap) + 8;
+        dominantesScroll.setContentHeight(Math.max(dominantesScroll.getHeight(), contentHeight));
+        dominantesScroll.setContentWidth(Math.max(dominantesScroll.getWidth(), containerWidth));
+    }
+
+    private void relayoutSessionsList() {
+        int y = 0;
+        int rowWidth = Math.max(120, sessionsScroll.getWidth() - 12);
+        int labelWidth = Math.max(120, sessionsScroll.getWidth() - 16);
+
+        for (BaseComp child : sessionsList.getChildrenList()) {
+            if (child instanceof SessionRowAdmin) {
+                child.setBounds(0, y, rowWidth, 66);
+                y += 76;
+                continue;
+            }
+            if (child instanceof Label) {
+                child.setBounds(0, y, labelWidth, 22);
+                y += 28;
+            }
+        }
+
+        sessionsScroll.setContentHeight(Math.max(sessionsScroll.getHeight(), y + 10));
+        sessionsScroll.setContentWidth(sessionsScroll.getWidth());
+    }
+
     private void layoutCampagne(int mainW) {
         campagneScroll.setBounds(0, 0, mainW, sectionHost.getHeight());
         campaignFormCard.setBounds(0, 0, mainW, 310);
@@ -424,6 +488,7 @@ public class AdminDashboardScreen implements AppScreen {
         saveCampaignButton.setBounds(16, 250, 130, 34);
         openCampaignButton.setBounds(158, 250, 90, 34);
         closeCampaignButton.setBounds(258, 250, 90, 34);
+        autoAssignButton.setBounds(358, 250, 140, 34);
         campaignFeedbackLabel.setBounds(16, 288, mainW - 32, 16);
         campagneScroll.setContentHeight(Math.max(sectionHost.getHeight(), 334));
         campagneScroll.setContentWidth(mainW);
@@ -477,9 +542,56 @@ public class AdminDashboardScreen implements AppScreen {
         activeCampaign = resolveActiveCampaign();
     }
 
+    private void invalidateDataCaches() {
+        dominantesCacheDirty = true;
+        sessionsCacheDirty = true;
+        allocationsCacheDirty = true;
+    }
+
+    private ArrayList<Dominante> getDominantes(boolean forceReload) {
+        if (forceReload || dominantesCacheDirty) {
+            cachedDominantes = dominanteService.listAll();
+            dominantesCacheDirty = false;
+        }
+        return cachedDominantes;
+    }
+
+    private ArrayList<SessionSlot> getSessions(boolean forceReload) {
+        int campaignId = activeCampaign == null ? -1 : activeCampaign.getId();
+        if (forceReload || sessionsCacheDirty || cachedSessionsCampaignId != campaignId) {
+            cachedSessionsCampaignId = campaignId;
+            cachedSessions = campaignId <= 0 ? new ArrayList<>() : new ArrayList<>(sessionService.listByCampaign(campaignId));
+            sessionsCacheDirty = false;
+        }
+        return cachedSessions;
+    }
+
+    private Map<Integer, Integer> getAllocations(boolean forceReload) {
+        int campaignId = activeCampaign == null ? -1 : activeCampaign.getId();
+        if (forceReload || allocationsCacheDirty || cachedAllocationsCampaignId != campaignId) {
+            cachedAllocationsCampaignId = campaignId;
+            cachedAllocationsBySession = campaignId <= 0 ? new HashMap<>()
+                    : sessionService.countAllocationsBySessionForCampaign(campaignId);
+            allocationsCacheDirty = false;
+        }
+        return cachedAllocationsBySession;
+    }
+
+    private void refreshCurrentSection() {
+        invalidateDataCaches();
+        switch (activeSection) {
+            case DOMINANTES -> refreshDominantesView();
+            case SESSIONS -> refreshSessionsView();
+            case CAMPAGNE -> refreshCampaignForm();
+            case DASHBOARD -> refreshDashboardView();
+        }
+        window.requestRenderIfNeeded();
+    }
+
     private void refreshDashboardView() {
         activeCampaign = resolveActiveCampaign();
-        int dominanteCount = dominanteDAO.findAll().size();
+        ArrayList<Dominante> dominantes = getDominantes(false);
+        int dominanteCount = dominantes.size();
         if (activeCampaign == null) {
             campaignTitle.setText("Aucune campagne active");
             campaignDates.setText("Creez une campagne pour commencer");
@@ -498,8 +610,9 @@ public class AdminDashboardScreen implements AppScreen {
             return;
         }
 
-        List<SessionSlot> sessions = sessionService.listByCampaign(activeCampaign.getId());
-        List<DominanteStat> stats = computeDominanteStats(sessions);
+        ArrayList<SessionSlot> sessions = getSessions(false);
+        Map<Integer, Integer> allocationsBySession = getAllocations(false);
+        ArrayList<DominanteStat> stats = computeDominanteStats(dominantes, sessions, allocationsBySession);
         int totalAllocated = 0;
         int totalCapacity = 0;
         for (DominanteStat stat : stats) {
@@ -530,9 +643,10 @@ public class AdminDashboardScreen implements AppScreen {
         activeCampaign = resolveActiveCampaign();
         clearChildren(dominantesList);
 
-        List<Dominante> dominantes = dominanteDAO.findAll();
-        List<SessionSlot> sessions = activeCampaign == null ? new ArrayList<>() : sessionService.listByCampaign(activeCampaign.getId());
-        List<DominanteStat> stats = computeDominanteStats(sessions);
+        ArrayList<Dominante> dominantes = getDominantes(false);
+        ArrayList<SessionSlot> sessions = getSessions(false);
+        Map<Integer, Integer> allocationsBySession = getAllocations(false);
+        ArrayList<DominanteStat> stats = computeDominanteStats(dominantes, sessions, allocationsBySession);
         Map<Integer, DominanteStat> byId = new HashMap<>();
         for (DominanteStat stat : stats) {
             byId.put(Integer.valueOf(stat.dominante.getId()), stat);
@@ -555,6 +669,13 @@ public class AdminDashboardScreen implements AppScreen {
             DominanteCardAdmin card = new DominanteCardAdmin(
                     () -> openEditDominanteModal(current),
                     () -> confirmDeleteDominante(current));
+            
+            card.getEventManager().register(event.UiEvent.Type.POINTER_UP, (c, e) -> {
+                if (e.getTarget() == card || e.getTarget() == card.getChildrenList().get(2) || e.getTarget() == card.getChildrenList().get(3)) {
+                     openPreviewDominanteModal(current, sessionsCount, capacity, allocated);
+                }
+            });
+
                 card.setDarkMode(dominanteDarkMode);
             int x = (idx % 2) * (cardW + gap);
             int y = (idx / 2) * (cardH + gap);
@@ -589,8 +710,8 @@ public class AdminDashboardScreen implements AppScreen {
             return;
         }
 
-        List<Dominante> dominantes = dominanteDAO.findAll();
-        List<String> options = new ArrayList<>();
+        ArrayList<Dominante> dominantes = getDominantes(false);
+        ArrayList<String> options = new ArrayList<>();
         options.add("Toutes les dominantes");
         for (Dominante dominante : dominantes) {
             options.add(dominante.getName());
@@ -598,7 +719,8 @@ public class AdminDashboardScreen implements AppScreen {
         dominanteFilter.setOptions(options);
         String selected = dominanteFilter.getSelectedOption();
 
-        List<SessionSlot> sessions = sessionService.listByCampaign(activeCampaign.getId());
+        ArrayList<SessionSlot> sessions = getSessions(false);
+        Map<Integer, Integer> allocationsBySession = getAllocations(false);
         Map<Integer, Dominante> dominantById = new HashMap<>();
         for (Dominante d : dominantes) {
             dominantById.put(Integer.valueOf(d.getId()), d);
@@ -628,7 +750,7 @@ public class AdminDashboardScreen implements AppScreen {
                     () -> openEditSessionModal(current),
                     () -> deleteSession(current));
             row.setBounds(0, y, sessionsScroll.getWidth() - 12, 66);
-            int allocated = registrationDAO.countBySession(activeCampaign.getId(), session.getId());
+            int allocated = allocationsBySession.getOrDefault(Integer.valueOf(session.getId()), 0);
             int fillRate = session.getCapacity() <= 0 ? 0 : (int) Math.round((allocated * 100.0) / session.getCapacity());
             String room = safe(session.getRoom());
             String details = formatMinute(session.getStartMinute()) + " - " + formatMinute(session.getEndMinute())
@@ -690,11 +812,15 @@ public class AdminDashboardScreen implements AppScreen {
             d.setColor(colorPicker.getSelectedColor());
             d.setResponsibleName(resolveDisplayName(user));
             d.setActive(true);
-            dominanteDAO.create(d);
-            closeTopLayer();
-            refreshDominantesView();
-            refreshDashboardView();
-            onResize();
+            ServiceResult result = dominanteService.create(d);
+            System.out.println("[AdminDominante] " + result.getMessage());
+            if (result.isSuccess()) {
+                invalidateDataCaches();
+                closeTopLayer();
+                refreshDominantesView();
+                refreshDashboardView();
+                onResize();
+            }
         });
         create.setBackground(new Color(12, 16, 44));
 
@@ -729,11 +855,15 @@ public class AdminDashboardScreen implements AppScreen {
             dominante.setDescription(descInput.getText());
             dominante.setColor(colorPicker.getSelectedColor());
             dominante.setCode(buildCode(nameInput.getValue()));
-            dominanteDAO.update(dominante);
-            closeTopLayer();
-            refreshDominantesView();
-            refreshDashboardView();
-            onResize();
+            ServiceResult result = dominanteService.update(dominante);
+            System.out.println("[AdminDominante] " + result.getMessage());
+            if (result.isSuccess()) {
+                invalidateDataCaches();
+                closeTopLayer();
+                refreshDominantesView();
+                refreshDashboardView();
+                onResize();
+            }
         });
         save.setBackground(new Color(12, 16, 44));
 
@@ -746,6 +876,38 @@ public class AdminDashboardScreen implements AppScreen {
         window.openModal(modal);
     }
 
+    private void openPreviewDominanteModal(Dominante dominante, int sessions, int capacity, int allocated) {
+        if (dominante == null) {
+            return;
+        }
+        FormModal modal = new FormModal(480, 240, "Details Dominante", this::closeTopLayer);
+
+        Label codeLabel = new Label("Code: " + safe(dominante.getCode()), 18, 12, 440, 24);
+        codeLabel.setFont(new Font("Dialog", Font.BOLD, 16));
+        codeLabel.setColor(new Color(66, 133, 244));
+
+        Label nameLabel = new Label("Nom: " + safe(dominante.getName()), 18, 40, 440, 24);
+        nameLabel.setFont(new Font("Dialog", Font.BOLD, 14));
+
+        Label descLabel = new Label(safe(dominante.getDescription()), 18, 70, 440, 60);
+        descLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+
+        Label statsLabel = new Label(String.format("Sessions: %d | Capacite: %d | Inscrits: %d", sessions, capacity, allocated), 18, 140, 440, 24);
+        statsLabel.setFont(new Font("Dialog", Font.BOLD, 13));
+        statsLabel.setColor(new Color(110, 120, 137));
+
+        Button close = new Button("Fermer", 360, 180, 100, 34, this::closeTopLayer);
+        close.setBackground(new Color(230, 235, 243));
+
+        modal.getBody().addChild(codeLabel);
+        modal.getBody().addChild(nameLabel);
+        modal.getBody().addChild(descLabel);
+        modal.getBody().addChild(statsLabel);
+        modal.getBody().addChild(close);
+
+        window.openModal(modal);
+    }
+
     private void confirmDeleteDominante(Dominante dominante) {
         if (dominante == null) {
             return;
@@ -753,11 +915,15 @@ public class AdminDashboardScreen implements AppScreen {
         ConfirmDialog dialog = new ConfirmDialog(420, 220, "Supprimer dominante",
                 "Supprimer " + safe(dominante.getName()) + " ?",
                 () -> {
-                    dominanteDAO.deleteById(dominante.getId());
-                    closeTopLayer();
-                    refreshDominantesView();
-                    refreshDashboardView();
-                    onResize();
+                    ServiceResult result = dominanteService.deleteById(dominante.getId());
+                    System.out.println("[AdminDominante] " + result.getMessage());
+                    if (result.isSuccess()) {
+                        invalidateDataCaches();
+                        closeTopLayer();
+                        refreshDominantesView();
+                        refreshDashboardView();
+                        onResize();
+                    }
                 },
                 this::closeTopLayer);
         window.openModal(dialog);
@@ -782,8 +948,8 @@ public class AdminDashboardScreen implements AppScreen {
         domLabel.setColor(new Color(113, 113, 122));
 
         SelectInput dominanteSelect = new SelectInput(376, 204, 160, 38);
-        List<Dominante> dominantes = dominanteDAO.findAll();
-        List<String> domNames = new ArrayList<>();
+        ArrayList<Dominante> dominantes = getDominantes(true);
+        ArrayList<String> domNames = new ArrayList<>();
         for (Dominante d : dominantes) {
             domNames.add(d.getName());
         }
@@ -814,6 +980,7 @@ public class AdminDashboardScreen implements AppScreen {
             ServiceResult result = sessionService.createSession(session);
             System.out.println("[AdminSession] " + result.getMessage());
             if (result.isSuccess()) {
+                invalidateDataCaches();
                 closeTopLayer();
                 refreshSessionsView();
                 refreshDashboardView();
@@ -857,8 +1024,8 @@ public class AdminDashboardScreen implements AppScreen {
         domLabel.setColor(new Color(113, 113, 122));
 
         SelectInput dominanteSelect = new SelectInput(376, 204, 160, 38);
-        List<Dominante> dominantes = dominanteDAO.findAll();
-        List<String> domNames = new ArrayList<>();
+        ArrayList<Dominante> dominantes = getDominantes(true);
+        ArrayList<String> domNames = new ArrayList<>();
         String selectedName = null;
         for (Dominante d : dominantes) {
             domNames.add(d.getName());
@@ -887,6 +1054,7 @@ public class AdminDashboardScreen implements AppScreen {
             ServiceResult result = sessionService.updateSession(existing);
             System.out.println("[AdminSession] " + result.getMessage());
             if (result.isSuccess()) {
+                invalidateDataCaches();
                 closeTopLayer();
                 refreshSessionsView();
                 refreshDashboardView();
@@ -917,6 +1085,9 @@ public class AdminDashboardScreen implements AppScreen {
                 () -> {
                     ServiceResult result = sessionService.deleteSession(session.getId());
                     System.out.println("[AdminSession] " + result.getMessage());
+                    if (result.isSuccess()) {
+                        invalidateDataCaches();
+                    }
                     closeTopLayer();
                     refreshSessionsView();
                     refreshDashboardView();
@@ -929,44 +1100,82 @@ public class AdminDashboardScreen implements AppScreen {
     private void saveCampaignSettings() {
         activeCampaign = resolveActiveCampaign();
         if (activeCampaign == null) {
+            campaignFeedbackLabel.setColor(new java.awt.Color(239, 68, 68));
             campaignFeedbackLabel.setText("Aucune campagne active.");
+            window.requestRenderIfNeeded();
             return;
         }
-        int maxChoices = parseInt(maxChoicesInput.getValue(), activeCampaign.getMaxChoices());
-        boolean ok = campaignService.updateSettings(
-                activeCampaign.getId(),
-                campaignNameInput.getValue(),
-                registrationDateInput.getValue(),
-                startDateInput.getValue(),
-                endDateInput.getValue(),
-                maxChoices
-        );
-        campaignFeedbackLabel.setText(ok ? "Parametres enregistres." : "Echec enregistrement.");
-        refreshDashboardView();
+        
+        campaignFeedbackLabel.setColor(new java.awt.Color(66, 133, 244));
+        campaignFeedbackLabel.setText("Enregistrement en cours...");
+        window.requestRenderIfNeeded();
+
+        final int id = activeCampaign.getId();
+        final String nameStr = campaignNameInput.getValue();
+        final String regDate = registrationDateInput.getValue();
+        final String start = startDateInput.getValue();
+        final String endStr = endDateInput.getValue();
+        final int maxChoices = parseInt(maxChoicesInput.getValue(), activeCampaign.getMaxChoices());
+
+        Thread t = new Thread(() -> {
+            boolean ok = campaignService.updateSettings(id, nameStr, regDate, start, endStr, maxChoices);
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                campaignFeedbackLabel.setColor(ok ? new java.awt.Color(34, 197, 94) : new java.awt.Color(239, 68, 68));
+                campaignFeedbackLabel.setText(ok ? "Parametres enregistres." : "Echec enregistrement.");
+                refreshDashboardView();
+                window.requestRenderIfNeeded();
+            });
+        });
+        t.setDaemon(true);
+        t.start();
     }
 
     private void openCampaign() {
         activeCampaign = resolveActiveCampaign();
-        if (activeCampaign == null) {
-            return;
-        }
-        ServiceResult result = campaignService.changeStatus(activeCampaign.getId(), "OPEN");
-        campaignFeedbackLabel.setText(result.getMessage());
-        refreshAllData();
-        refreshDashboardView();
-        refreshCampaignForm();
+        if (activeCampaign == null) return;
+        
+        campaignFeedbackLabel.setColor(new java.awt.Color(66, 133, 244));
+        campaignFeedbackLabel.setText("Ouverture en cours...");
+        window.requestRenderIfNeeded();
+        final int id = activeCampaign.getId();
+        
+        Thread t = new Thread(() -> {
+            ServiceResult result = campaignService.changeStatus(id, "OPEN");
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                campaignFeedbackLabel.setColor(result.isSuccess() ? new java.awt.Color(34, 197, 94) : new java.awt.Color(239, 68, 68));
+                campaignFeedbackLabel.setText(result.getMessage());
+                refreshAllData();
+                refreshDashboardView();
+                refreshCampaignForm();
+                window.requestRenderIfNeeded();
+            });
+        });
+        t.setDaemon(true);
+        t.start();
     }
 
     private void closeCampaign() {
         activeCampaign = resolveActiveCampaign();
-        if (activeCampaign == null) {
-            return;
-        }
-        ServiceResult result = campaignService.changeStatus(activeCampaign.getId(), "CLOSED");
-        campaignFeedbackLabel.setText(result.getMessage());
-        refreshAllData();
-        refreshDashboardView();
-        refreshCampaignForm();
+        if (activeCampaign == null) return;
+        
+        campaignFeedbackLabel.setColor(new java.awt.Color(66, 133, 244));
+        campaignFeedbackLabel.setText("Fermeture en cours...");
+        window.requestRenderIfNeeded();
+        final int id = activeCampaign.getId();
+        
+        Thread t = new Thread(() -> {
+            ServiceResult result = campaignService.changeStatus(id, "CLOSED");
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                campaignFeedbackLabel.setColor(result.isSuccess() ? new java.awt.Color(34, 197, 94) : new java.awt.Color(239, 68, 68));
+                campaignFeedbackLabel.setText(result.getMessage());
+                refreshAllData();
+                refreshDashboardView();
+                refreshCampaignForm();
+                window.requestRenderIfNeeded();
+            });
+        });
+        t.setDaemon(true);
+        t.start();
     }
 
     private void openCreateCampaignModal() {
@@ -1032,6 +1241,29 @@ public class AdminDashboardScreen implements AppScreen {
         refreshDashboardView();
     }
 
+    private void runAutoAssignment() {
+        if (activeCampaign == null) return;
+        
+        campaignFeedbackLabel.setColor(new java.awt.Color(66, 133, 244));
+        campaignFeedbackLabel.setText("Assignation automatique en cours. Merci de patienter...");
+        window.requestRenderIfNeeded();
+        final int id = activeCampaign.getId();
+
+        Thread t = new Thread(() -> {
+            ServiceResult result = assignmentService.runAutoAssignment(id);
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                campaignFeedbackLabel.setColor(result.isSuccess() ? new java.awt.Color(34, 197, 94) : new java.awt.Color(239, 68, 68));
+                campaignFeedbackLabel.setText(result.getMessage());
+                refreshAllData();
+                refreshDashboardView();
+                refreshCampaignForm();
+                window.requestRenderIfNeeded();
+            });
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
     private Campaign resolveActiveCampaign() {
         Campaign openCampaign = selectBestCampaign(campaignService.getCampaignsByStatus("OPEN"));
         if (openCampaign != null) {
@@ -1076,9 +1308,8 @@ public class AdminDashboardScreen implements AppScreen {
         }
     }
 
-    private List<DominanteStat> computeDominanteStats(List<SessionSlot> sessions) {
-        List<DominanteStat> result = new ArrayList<>();
-        List<Dominante> dominantes = dominanteDAO.findAll();
+    private ArrayList<DominanteStat> computeDominanteStats(List<Dominante> dominantes, List<SessionSlot> sessions, Map<Integer, Integer> allocationsBySession) {
+        ArrayList<DominanteStat> result = new ArrayList<>();
         Map<Integer, DominanteStat> byId = new HashMap<>();
 
         for (Dominante dominante : dominantes) {
@@ -1087,7 +1318,6 @@ public class AdminDashboardScreen implements AppScreen {
             byId.put(Integer.valueOf(dominante.getId()), stat);
         }
 
-        int campaignId = activeCampaign == null ? -1 : activeCampaign.getId();
         for (SessionSlot session : sessions) {
             DominanteStat stat = byId.get(Integer.valueOf(session.getDominanteId()));
             if (stat == null) {
@@ -1095,8 +1325,9 @@ public class AdminDashboardScreen implements AppScreen {
             }
             stat.sessionCount += 1;
             stat.capacity += session.getCapacity();
-            if (campaignId > 0) {
-                stat.allocated += registrationDAO.countBySession(campaignId, session.getId());
+            Integer allocated = allocationsBySession.get(Integer.valueOf(session.getId()));
+            if (allocated != null) {
+                stat.allocated += allocated.intValue();
             }
         }
 
@@ -1349,37 +1580,4 @@ public class AdminDashboardScreen implements AppScreen {
         }
     }
 
-    private static class ColorPicker extends gui.components.SurfaceCard {
-                private String selectedColor;
-                        private final java.util.List<gui.components.SurfaceCard> colorSquares = new java.util.ArrayList<>();
-                                private final String[] colors = { "#ef4444", "#f97316", "#f59e0b", "#10b981", "#14b8a6", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef" };
-                                
-                                        public ColorPicker(int x, int y, int width, int height, String initialColor) {
-                                                        super(x, y, width, height, new java.awt.Color(0,0,0,0), new java.awt.Color(0,0,0,0), 0);
-                                                                    int sqSize = 32; int gap = 8; int col = 0; int row = 0;
-                                                                                for (String c : colors) {
-                                                                                                    gui.components.SurfaceCard sq = new gui.components.SurfaceCard(col * (sqSize + gap), row * (sqSize + gap), sqSize, sqSize, java.awt.Color.decode(c), java.awt.Color.decode(c), 4);
-                sq.getEventManager().register(event.UiEvent.Type.CLICK, (comp, ev) -> { setSelectedColor(c); });
-                addChild(sq); colorSquares.add(sq); col++; if (col >= 5) { col = 0; row++; }
-            }
-            String initStr = colors[0];
-            if (initialColor != null) {
-                // String hex = Integer.toHexString(initialColor.getRGB());
-                // initStr = "#" + hex.substring(Math.max(0, hex.length() - 6));
-                initStr = initialColor;
-            }
-            setSelectedColor(initStr);
-        }
-        public void setSelectedColor(String color) {
-            this.selectedColor = color;
-            for (int i = 0; i < colors.length; i++) {
-                gui.components.SurfaceCard sq = colorSquares.get(i);
-                sq.setBorderColor(colors[i].equals(color) ? java.awt.Color.WHITE : java.awt.Color.decode(colors[i]));
-            }
-            if (getOwnerWindow() != null) getOwnerWindow().requestRenderIfNeeded();
-        }
-        public java.awt.Color getSelectedColor() {
-            try { return java.awt.Color.decode(selectedColor); } catch(Exception e) { return java.awt.Color.decode(colors[0]); }
-        }
-    }
 }

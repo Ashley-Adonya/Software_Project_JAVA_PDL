@@ -61,4 +61,17 @@ public class SessionOfferCard extends SurfaceCard {
         this.capacity.setText(capacity == null ? "" : capacity);
         invalidate();
     }
+
+    public void setActionText(String text) {
+        this.addButton.setText(text == null ? "" : text);
+        invalidate();
+    }
+
+    public void setActionBackground(Color bg) {
+        if (bg == null) {
+            return;
+        }
+        this.addButton.setBackground(bg);
+        invalidate();
+    }
 }

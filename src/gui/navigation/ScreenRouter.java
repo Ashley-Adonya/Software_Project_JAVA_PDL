@@ -57,11 +57,11 @@ public class ScreenRouter {
     }
 
     private void setCurrent(AppScreen screen) {
+        float start = System.currentTimeMillis() / 1000.0f;
         try {
             System.out.println("[ScreenRouter] setCurrent -> " + (screen == null ? "null" : screen.getClass().getName()));
             this.current = screen;
             this.current.mount();
-            this.current.onResize();
             System.out.println("[ScreenRouter] setCurrent OK");
         } catch (Throwable t) {
             t.printStackTrace();
@@ -70,5 +70,7 @@ public class ScreenRouter {
             this.current = null;
             showLogin();
         }
+        float end = System.currentTimeMillis() / 1000.0f;
+        System.out.println("[time=" + (end - start) + "] ScreenRouter.setCurrent: screen=" + (screen == null ? "null" : screen.getClass().getName()));
     }
 }

@@ -5,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import model.SessionSlot;
 
 public class SessionDAO {
@@ -219,8 +221,61 @@ public class SessionDAO {
         );
     }
 
+    public int countByCampaign(int campaignId) {
+        String sql = "SELECT COUNT(*) c FROM sessions WHERE campaign_id = ?";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return 0;
+            }
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, campaignId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("c");
+            }
+        } catch (Exception e) {
+            System.err.println("SessionDAO.countByCampaign: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return 0;
+    }
+
+    public Map<Integer, Integer> countBySessionForCampaign(int campaignId) {
+        String sql = "SELECT session_id, COUNT(*) c FROM registrations WHERE campaign_id = ? AND status = 'ALLOCATED' GROUP BY session_id";
+        Map<Integer, Integer> result = new HashMap<Integer, Integer>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return result;
+            }
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, campaignId);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.put(rs.getInt("session_id"), rs.getInt("c"));
+            }
+        } catch (Exception e) {
+            System.err.println("SessionDAO.countBySessionForCampaign: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return result;
+    }
+
     private void close(AutoCloseable c) {
-        if (c != null) {
+        if (c != null && !(c instanceof java.sql.Connection)) {
             try {
                 c.close();
             } catch (Exception ignored) {

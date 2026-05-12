@@ -6,10 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import components.ImageComp;
+import javax.swing.SwingUtilities;
+
 import components.Label;
 import main.BaseComp;
 import main.BaseWindow;
+import gui.components.CachedImageComp;
 import gui.components.PrimaryButton;
 import gui.components.ReusableLabeledInput;
 import gui.components.SurfaceCard;
@@ -30,7 +32,7 @@ public class LoginScreen implements AppScreen {
     private final Consumer<User> onAuthenticated;
 
     private final SurfaceCard card;
-    private final ImageComp appLogo;
+    private final CachedImageComp appLogo;
     private final Label appSubtitle;
 
     private final Label cardTitle;
@@ -39,19 +41,22 @@ public class LoginScreen implements AppScreen {
     private final ReusableLabeledInput passwordInput;
     private final Label feedbackLabel;
     private final PrimaryButton loginButton;
+    private final PrimaryButton themeButton;
+    private boolean darkTheme = true;
+    private boolean loginInProgress;
 
     public LoginScreen(BaseWindow window, Consumer<User> onAuthenticated) {
         this.window = window;
         this.authService = new AuthService();
         this.onAuthenticated = onAuthenticated;
 
-        this.appLogo = new ImageComp("assets/logo-esigelec.png", 0, 0, 260, 96);
+        this.appLogo = new CachedImageComp("assets/logo-esigelec.png", 0, 0, 260, 96);
 
         this.appSubtitle = new Label("Systeme de gestion des inscriptions", 0, 0, 360, 20);
         this.appSubtitle.setFont(new Font("Dialog", Font.PLAIN, 13));
         this.appSubtitle.setColor(SUBTITLE_COLOR);
 
-        this.card = new SurfaceCard(0, 0, 390, 320, CARD_BG, CARD_BORDER, 14);
+        this.card = new SurfaceCard(0, 0, 390, 356, CARD_BG, CARD_BORDER, 14);
         this.cardTitle = new Label("Connexion", 0, 0, 180, 24);
         this.cardTitle.setFont(new Font("Dialog", Font.BOLD, 18));
         this.cardTitle.setColor(new Color(235, 241, 255));
@@ -68,9 +73,13 @@ public class LoginScreen implements AppScreen {
         this.feedbackLabel.setColor(MESSAGE_ERROR);
 
         this.loginButton = new PrimaryButton("Se connecter", 0, 0, 320, 38, this::handleLogin);
+        this.themeButton = new PrimaryButton("Mode clair", 0, 0, 148, 30, this::toggleTheme);
+        this.themeButton.setBackground(new Color(40, 51, 73));
+
 
         card.addChild(cardTitle);
         card.addChild(cardSubtitle);
+        card.addChild(themeButton);
         card.addChild(emailInput);
         card.addChild(passwordInput);
         card.addChild(feedbackLabel);
@@ -109,7 +118,7 @@ public class LoginScreen implements AppScreen {
 
         int horizontalPadding = width < 560 ? 20 : 30;
         int cardWidth = Math.min(390, Math.max(310, width - (horizontalPadding * 2)));
-        int cardHeight = 320;
+        int cardHeight = 356;
 
         int headerTop = Math.max(24, (height / 2) - 260);
         int logoWidth = width < 560 ? 210 : 260;
@@ -127,44 +136,63 @@ public class LoginScreen implements AppScreen {
         int fieldWidth = cardWidth - 40;
         cardTitle.setBounds(cardInnerX, 18, fieldWidth, 24);
         cardSubtitle.setBounds(cardInnerX, 42, fieldWidth, 18);
+        themeButton.setBounds(cardInnerX, 68, 148, 30);
 
-        emailInput.setBounds(cardInnerX, 78, fieldWidth, 64);
-        passwordInput.setBounds(cardInnerX, 148, fieldWidth, 64);
-        feedbackLabel.setBounds(cardInnerX, 220, fieldWidth, 18);
-        loginButton.setBounds(cardInnerX, 248, fieldWidth, 40);
+        emailInput.setBounds(cardInnerX, 108, fieldWidth, 64);
+        passwordInput.setBounds(cardInnerX, 178, fieldWidth, 64);
+        feedbackLabel.setBounds(cardInnerX, 250, fieldWidth, 18);
+        loginButton.setBounds(cardInnerX, 278, fieldWidth, 40);
 
         window.invalidateAll();
         window.requestRenderIfNeeded();
     }
 
     private void handleLogin() {
-        String login = emailInput.getValue();
-        String password = passwordInput.getValue();
+        if (loginInProgress) {
+            return;
+        }
+        final String login = emailInput.getValue();
+        final String password = passwordInput.getValue();
 
         if (login.isBlank() || password.isBlank()) {
             setFeedback("Veuillez renseigner email et mot de passe.", false);
             return;
         }
+        loginInProgress = true;
+        feedbackLabel.setColor(SUBTITLE_COLOR);
+        feedbackLabel.setText("Connexion en cours...");
+        feedbackLabel.invalidate();
+        loginButton.setText("Connexion...");
+        loginButton.invalidate();
 
-        User user = authService.login(login, password);
-        if (user == null) {
-            setFeedback("Identifiants invalides.", false);
-            return;
-        }
+        Thread worker = new Thread(() -> {
+            User user = authService.login(login, password);
+            SwingUtilities.invokeLater(() -> {
+                loginInProgress = false;
+                loginButton.setText("Se connecter");
+                loginButton.invalidate();
+                if (user == null) {
+                    setFeedback("Identifiants invalides.", false);
+                    return;
+                }
 
-        String role = user.getRole() == null ? "UNKNOWN" : user.getRole().toUpperCase();
-        System.out.println("[LoginScreen] Auth OK user=" + user.getLogin() + " role=" + role);
-        if (onAuthenticated == null) {
-            setFeedback("Erreur interne: routeur non disponible.", false);
-            return;
-        }
+                String role = user.getRole() == null ? "UNKNOWN" : user.getRole().toUpperCase();
+                System.out.println("[LoginScreen] Auth OK user=" + user.getLogin() + " role=" + role);
+                if (onAuthenticated == null) {
+                    setFeedback("Erreur interne: routeur non disponible.", false);
+                    return;
+                }
 
-        try {
-            onAuthenticated.accept(user);
-        } catch (Throwable t) {
-            t.printStackTrace();
-            setFeedback("Connexion OK mais redirection en erreur. Voir console.", false);
-        }
+                try {
+                    onAuthenticated.accept(user);
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    setFeedback("Connexion OK mais redirection en erreur. Voir console.", false);
+                }
+            });
+        }, "login-worker");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private void setFeedback(String message, boolean success) {
@@ -173,6 +201,29 @@ public class LoginScreen implements AppScreen {
         feedbackLabel.invalidate();
     }
 
+    private void toggleTheme() {
+        darkTheme = !darkTheme;
+        BaseComp content = window.getContent();
+        Color pageBg = darkTheme ? PAGE_BG : new Color(244, 247, 252);
+        Color cardBg = darkTheme ? CARD_BG : Color.WHITE;
+        Color cardBorder = darkTheme ? CARD_BORDER : new Color(225, 231, 239);
+        Color titleColor = darkTheme ? new Color(235, 241, 255) : new Color(25, 32, 48);
+        Color subtitleColor = darkTheme ? SUBTITLE_COLOR : new Color(113, 122, 137);
+        Color feedbackColor = darkTheme ? MESSAGE_ERROR : new Color(185, 28, 28);
+
+        content.setStyleManager(new style.StyleManager(pageBg, 0, content.getWidth(), content.getHeight(), 0, 0, "absolute"));
+        card.setBackground(cardBg);
+        card.setBorderColor(cardBorder);
+        cardTitle.setColor(titleColor);
+        cardSubtitle.setColor(subtitleColor);
+        feedbackLabel.setColor(feedbackColor);
+        themeButton.setText(darkTheme ? "Mode clair" : "Mode sombre");
+        themeButton.setBackground(darkTheme ? new Color(40, 51, 73) : new Color(228, 232, 240));
+        themeButton.setForeground(darkTheme ? new Color(219, 230, 253) : new Color(45, 55, 72));
+
+        window.invalidateAll();
+        window.requestRenderIfNeeded();
+    }
 }
 
 

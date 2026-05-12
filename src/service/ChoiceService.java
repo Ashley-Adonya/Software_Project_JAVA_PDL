@@ -39,7 +39,8 @@ public class ChoiceService {
         }
 
         if (newChoices == null || newChoices.isEmpty()) {
-            return ServiceResult.fail("Aucun choix fourni");
+            int removed = choiceDAO.deleteByStudentAndCampaign(campaignId, studentId);
+            return ServiceResult.ok("Choix supprimes (" + removed + ")");
         }
         if (newChoices.size() > campaign.getMaxChoices()) {
             return ServiceResult.fail("Nombre de choix superieur a max_choices");
