@@ -5,7 +5,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.util.ArrayDeque;
@@ -300,7 +300,9 @@ public class PasswordField extends BaseComp {
         }
 
         String masked = "*".repeat(Math.max(0, text.length()));
-        FontMetrics fm = Toolkit.getDefaultToolkit().getFontMetrics(UI_FONT);
+        Graphics2D g2d = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).createGraphics();
+        FontMetrics fm = g2d.getFontMetrics(UI_FONT);
+        g2d.dispose();
         for (int i = 0; i < masked.length(); i++) {
             int left = fm.stringWidth(masked.substring(0, i));
             int right = fm.stringWidth(masked.substring(0, i + 1));
