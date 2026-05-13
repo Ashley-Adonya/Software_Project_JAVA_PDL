@@ -152,7 +152,7 @@ public class CachedImageComp extends BaseComp {
         }
         try {
             if (isWebUrl(source)) {
-                return ImageIO.read(new URL(source));
+                return ImageIO.read(URI.create(source).toURL());
             }
             return ImageIO.read(new File(source));
         } catch (IOException e) {
@@ -165,7 +165,7 @@ public class CachedImageComp extends BaseComp {
             return false;
         }
         try {
-            URL url = new URL(source);
+            URL url = URI.create(source).toURL();
             String protocol = url.getProtocol();
             return "http".equalsIgnoreCase(protocol) || "https".equalsIgnoreCase(protocol);
         } catch (MalformedURLException e) {
