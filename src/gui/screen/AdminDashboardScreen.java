@@ -1066,6 +1066,7 @@ public class AdminDashboardScreen implements AppScreen {
         modal.getBody().addChild(colorPicker);
         modal.getBody().addChild(cancel);
         modal.getBody().addChild(create);
+        modal.getBody().addChild(sessionFeedback);
 
         window.openModal(modal);
     }
@@ -1200,19 +1201,49 @@ public class AdminDashboardScreen implements AppScreen {
         cancel.setBackground(new Color(228, 228, 231));
         cancel.setForeground(new Color(39, 39, 42));
 
+        Label sessionFeedback = new Label("", 24, 310, 512, 20);
+        sessionFeedback.setFont(new Font("Dialog", Font.PLAIN, 12));
+        sessionFeedback.setColor(TEXT_MUTED);
+
         Button create = new Button("Creer", 436, 266, 100, 36, () -> {
             if (dominantes.isEmpty()) {
                 return;
             }
+            // Quick client-side validations
+            if (titleInput.getValue() == null || titleInput.getValue().isBlank()) {
+                sessionFeedback.setColor(new Color(239, 68, 68));
+                sessionFeedback.setText("Titre obligatoire.");
+                return;
+            }
+            int cap = parseInt(capInput.getValue(), 0);
+            if (cap <= 0) {
+                sessionFeedback.setColor(new Color(239, 68, 68));
+                sessionFeedback.setText("Capacite invalide.");
+                return;
+            }
+            int startMin = parseTimeToMinute(startInput.getValue());
+            int endMin = parseTimeToMinute(endInput.getValue());
+            if (endMin <= startMin) {
+                sessionFeedback.setColor(new Color(239, 68, 68));
+                sessionFeedback.setText("Horaire invalide: la fin doit etre apres le debut.");
+                return;
+            }
+            boolean inWindow = (startMin >= 510 && endMin <= 750) || (startMin >= 810 && endMin <= 1050);
+            if (!inWindow) {
+                sessionFeedback.setColor(new Color(239, 68, 68));
+                sessionFeedback.setText("Hors plage horaire autorisee: 08:30-12:30 ou 13:30-17:30.");
+                return;
+            }
+
             SessionSlot session = new SessionSlot();
             session.setCampaignId(activeCampaign.getId());
             session.setDominanteId(resolveDominanteId(dominantes, dominanteSelect.getSelectedOption()));
             session.setTitle(titleInput.getValue());
             session.setRoom(roomInput.getValue());
             session.setSessionDate(dateInput.getValue());
-            session.setCapacity(parseInt(capInput.getValue(), 20));
-            session.setStartMinute(parseTimeToMinute(startInput.getValue()));
-            session.setEndMinute(parseTimeToMinute(endInput.getValue()));
+            session.setCapacity(cap);
+            session.setStartMinute(startMin);
+            session.setEndMinute(endMin);
             session.setCreatedBy(user.getId());
             ServiceResult result = sessionService.createSession(session);
             System.out.println("[AdminSession] " + result.getMessage());
@@ -1222,6 +1253,9 @@ public class AdminDashboardScreen implements AppScreen {
                 refreshSessionsView();
                 refreshDashboardView();
                 onResize();
+            } else {
+                sessionFeedback.setColor(new Color(239, 68, 68));
+                sessionFeedback.setText(result.getMessage());
             }
         });
         create.setBackground(new Color(12, 16, 44));
@@ -1280,14 +1314,44 @@ public class AdminDashboardScreen implements AppScreen {
         cancel.setBackground(new Color(228, 228, 231));
         cancel.setForeground(new Color(39, 39, 42));
 
+        Label sessionFeedbackEdit = new Label("", 24, 310, 512, 20);
+        sessionFeedbackEdit.setFont(new Font("Dialog", Font.PLAIN, 12));
+        sessionFeedbackEdit.setColor(TEXT_MUTED);
+
         Button save = new Button("Sauver", 436, 266, 100, 36, () -> {
+            // Client-side quick validations
+            if (titleInput.getValue() == null || titleInput.getValue().isBlank()) {
+                sessionFeedbackEdit.setColor(new Color(239, 68, 68));
+                sessionFeedbackEdit.setText("Titre obligatoire.");
+                return;
+            }
+            int cap = parseInt(capInput.getValue(), existing.getCapacity());
+            if (cap <= 0) {
+                sessionFeedbackEdit.setColor(new Color(239, 68, 68));
+                sessionFeedbackEdit.setText("Capacite invalide.");
+                return;
+            }
+            int startMin = parseTimeToMinute(startInput.getValue());
+            int endMin = parseTimeToMinute(endInput.getValue());
+            if (endMin <= startMin) {
+                sessionFeedbackEdit.setColor(new Color(239, 68, 68));
+                sessionFeedbackEdit.setText("Horaire invalide: la fin doit etre apres le debut.");
+                return;
+            }
+            boolean inWindow = (startMin >= 510 && endMin <= 750) || (startMin >= 810 && endMin <= 1050);
+            if (!inWindow) {
+                sessionFeedbackEdit.setColor(new Color(239, 68, 68));
+                sessionFeedbackEdit.setText("Hors plage horaire autorisee: 08:30-12:30 ou 13:30-17:30.");
+                return;
+            }
+
             existing.setDominanteId(resolveDominanteId(dominantes, dominanteSelect.getSelectedOption()));
             existing.setTitle(titleInput.getValue());
             existing.setRoom(roomInput.getValue());
             existing.setSessionDate(dateInput.getValue());
-            existing.setCapacity(parseInt(capInput.getValue(), existing.getCapacity()));
-            existing.setStartMinute(parseTimeToMinute(startInput.getValue()));
-            existing.setEndMinute(parseTimeToMinute(endInput.getValue()));
+            existing.setCapacity(cap);
+            existing.setStartMinute(startMin);
+            existing.setEndMinute(endMin);
             ServiceResult result = sessionService.updateSession(existing);
             System.out.println("[AdminSession] " + result.getMessage());
             if (result.isSuccess()) {
@@ -1296,6 +1360,9 @@ public class AdminDashboardScreen implements AppScreen {
                 refreshSessionsView();
                 refreshDashboardView();
                 onResize();
+            } else {
+                sessionFeedbackEdit.setColor(new Color(239, 68, 68));
+                sessionFeedbackEdit.setText(result.getMessage());
             }
         });
         save.setBackground(new Color(12, 16, 44));
@@ -1310,6 +1377,7 @@ public class AdminDashboardScreen implements AppScreen {
         modal.getBody().addChild(dominanteSelect);
         modal.getBody().addChild(cancel);
         modal.getBody().addChild(save);
+        modal.getBody().addChild(sessionFeedbackEdit);
 
         window.openModal(modal);
     }

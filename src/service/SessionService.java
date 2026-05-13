@@ -26,8 +26,8 @@ public class SessionService {
         if (c == null) {
             return ServiceResult.fail("Campagne introuvable");
         }
-        if (!"PREPARATION".equals(c.getStatus())) {
-            return ServiceResult.fail("Creation autorisee uniquement en PREPARATION");
+        if (!"OPEN".equals(c.getStatus())) {
+            return ServiceResult.fail("Creation autorisee uniquement en OPEN");
         }
 
         int id = sessionDAO.create(session);

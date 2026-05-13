@@ -254,6 +254,26 @@ public class RegistrationDAO {
         return result;
     }
 
+    public int deleteByStudentAndCampaign(int campaignId, int studentId) {
+        String sql = "DELETE FROM registrations WHERE campaign_id = ? AND student_id = ?";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) return 0;
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, campaignId);
+            ps.setInt(2, studentId);
+            return ps.executeUpdate();
+        } catch (Exception e) {
+            System.err.println("RegistrationDAO.deleteByStudentAndCampaign: " + e.getMessage());
+        } finally {
+            close(ps);
+            close(conn);
+        }
+        return 0;
+    }
+
     private Registration mapRegistration(ResultSet rs) throws Exception {
         int sourceRank = rs.getInt("source_choice_rank");
         Integer sourceChoiceRank = rs.wasNull() ? null : Integer.valueOf(sourceRank);

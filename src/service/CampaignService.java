@@ -4,6 +4,13 @@ import dao.CampaignDAO;
 import model.Campaign;
 import java.util.List;
 
+/**
+ * Service orchestrant le cycle de vie des campagnes d'attribution.
+ * 
+ * Nous avons implémenté une machine à états finis pour garantir que les campagnes
+ * passent par des étapes cohérentes (PREPARATION, OPEN, CLOSED, PROCESSING, VALIDATED, ARCHIVED).
+ * Ce service permet également la configuration des paramètres de campagne.
+ */
 public class CampaignService {
     private final CampaignDAO campaignDAO;
 

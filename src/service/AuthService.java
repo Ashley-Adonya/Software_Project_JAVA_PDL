@@ -5,6 +5,12 @@ import model.User;
 import java.util.Locale;
 import java.text.Normalizer;
 
+/**
+ * Service gérant l'authentification et les autorisations des utilisateurs.
+ * 
+ * Nous avons conçu ce service pour centraliser la logique de connexion et la vérification
+ * des rôles (Admin, Étudiant), en utilisant une normalisation stricte des chaînes de caractères.
+ */
 public class AuthService {
     private final UserDAO userDAO;
 
