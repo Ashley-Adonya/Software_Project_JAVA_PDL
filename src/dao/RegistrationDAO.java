@@ -199,6 +199,61 @@ public class RegistrationDAO {
         return 0;
     }
 
+    public List<Registration> findByCampaignAndStatus(int campaignId, String status) {
+        String sql = "SELECT id, campaign_id, student_id, session_id, source_choice_rank, status FROM registrations WHERE campaign_id = ? AND status = ? ORDER BY id";
+        List<Registration> result = new ArrayList<Registration>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return result;
+            }
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, campaignId);
+            ps.setString(2, status);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(mapRegistration(rs));
+            }
+        } catch (Exception e) {
+            System.err.println("RegistrationDAO.findByCampaignAndStatus: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return result;
+    }
+
+    public List<Integer> findStudentIdsWithRegistrations(int campaignId) {
+        String sql = "SELECT DISTINCT student_id FROM registrations WHERE campaign_id = ?";
+        List<Integer> result = new ArrayList<Integer>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return result;
+            }
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, campaignId);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(rs.getInt("student_id"));
+            }
+        } catch (Exception e) {
+            System.err.println("RegistrationDAO.findStudentIdsWithRegistrations: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return result;
+    }
+
     private Registration mapRegistration(ResultSet rs) throws Exception {
         int sourceRank = rs.getInt("source_choice_rank");
         Integer sourceChoiceRank = rs.wasNull() ? null : Integer.valueOf(sourceRank);

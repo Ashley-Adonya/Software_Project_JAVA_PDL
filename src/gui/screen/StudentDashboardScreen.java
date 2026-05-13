@@ -44,7 +44,7 @@ public class StudentDashboardScreen implements AppScreen {
 
     private final BaseWindow window;
     private final User user;
-    private final Runnable onLogout;
+    // private final Runnable onLogout;
 
     private final CampaignService campaignService;
     private final SessionService sessionService;
@@ -87,7 +87,7 @@ public class StudentDashboardScreen implements AppScreen {
     public StudentDashboardScreen(BaseWindow window, User user, Runnable onLogout) {
         this.window = window;
         this.user = user;
-        this.onLogout = onLogout;
+        // this.onLogout = onLogout;
 
         this.campaignService = new CampaignService();
         this.sessionService = new SessionService();

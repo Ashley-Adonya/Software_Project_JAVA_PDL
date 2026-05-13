@@ -119,6 +119,78 @@ public class UserDAO {
         return users;
     }
 
+    public List<User> findStudentsWithoutRegistrationInCampaign(String promo, int campaignId, List<Integer> excludedIds) {
+        StringBuilder sql = new StringBuilder("SELECT id, login, password, full_name, role, promo, is_active FROM users ");
+        sql.append("WHERE role = 'STUDENT' AND promo = ? AND is_active = 1");
+        if (excludedIds != null && !excludedIds.isEmpty()) {
+            StringBuilder placeholders = new StringBuilder();
+            for (int i = 0; i < excludedIds.size(); i++) {
+                placeholders.append("?");
+                if (i < excludedIds.size() - 1) placeholders.append(",");
+            }
+            sql.append(" AND id NOT IN (").append(placeholders).append(")");
+        }
+        sql.append(" ORDER BY full_name");
+        
+        List<User> users = new ArrayList<User>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return users;
+            }
+            ps = conn.prepareStatement(sql.toString());
+            ps.setString(1, promo);
+            int paramIndex = 2;
+            if (excludedIds != null) {
+                for (Integer id : excludedIds) {
+                    ps.setInt(paramIndex++, id);
+                }
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                users.add(mapUser(rs));
+            }
+        } catch (Exception e) {
+            System.err.println("UserDAO.findStudentsWithoutRegistrationInCampaign: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return users;
+    }
+
+    public List<User> findAllStudentsByPromo(String promo) {
+        String sql = "SELECT id, login, password, full_name, role, promo, is_active FROM users "
+                + "WHERE role = 'STUDENT' AND promo = ? AND is_active = 1 ORDER BY full_name";
+        List<User> users = new ArrayList<User>();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) {
+                return users;
+            }
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, promo);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                users.add(mapUser(rs));
+            }
+        } catch (Exception e) {
+            System.err.println("UserDAO.findAllStudentsByPromo: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return users;
+    }
+
     public int create(User user) {
         String sql = "INSERT INTO users (login, password, full_name, role, promo, is_active, created_at) "
                 + "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";

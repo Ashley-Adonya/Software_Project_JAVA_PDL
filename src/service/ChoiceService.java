@@ -2,6 +2,7 @@ package service;
 
 import dao.CampaignDAO;
 import dao.ChoiceDAO;
+import dao.SessionDAO;
 import dao.UserDAO;
 import model.Campaign;
 import model.Choice;
@@ -14,11 +15,15 @@ public class ChoiceService {
     private final ChoiceDAO choiceDAO;
     private final CampaignDAO campaignDAO;
     private final UserDAO userDAO;
+    private final RegistrationService registrationService;
+    private final SessionDAO sessionDAO;
 
     public ChoiceService() {
         this.choiceDAO = new ChoiceDAO();
         this.campaignDAO = new CampaignDAO();
         this.userDAO = new UserDAO();
+        this.sessionDAO = new SessionDAO();
+        this.registrationService = new RegistrationService();
     }
 
     public ServiceResult replaceStudentChoices(int campaignId, int studentId, List<Choice> newChoices) {
@@ -39,7 +44,7 @@ public class ChoiceService {
         }
 
         if (newChoices == null || newChoices.isEmpty()) {
-            int removed = choiceDAO.deleteByStudentAndCampaign(campaignId, studentId);
+             int removed = choiceDAO.deleteByStudentAndCampaign(campaignId, studentId);
             return ServiceResult.ok("Choix supprimes (" + removed + ")");
         }
         if (newChoices.size() > campaign.getMaxChoices()) {
@@ -59,6 +64,13 @@ public class ChoiceService {
             if (sessions.contains(Integer.valueOf(c.getSessionId()))) {
                 return ServiceResult.fail("Session dupliquee");
             }
+            RegistrationService.ConflictResult conflictCheck = registrationService.checkRegistration(campaignId, studentId, c.getSessionId());
+            if (conflictCheck.hasConflict) {
+                return ServiceResult.fail("Conflit: " + conflictCheck.conflictMessage);
+            }
+            if (conflictCheck.sessionFull && (conflictCheck.alternatives == null || conflictCheck.alternatives.isEmpty())) {
+                return ServiceResult.fail("Session complete et aucune alternative disponible");
+            }
             ranks.add(Integer.valueOf(c.getRankOrder()));
             sessions.add(Integer.valueOf(c.getSessionId()));
             c.setCampaignId(campaignId);
@@ -74,5 +86,11 @@ public class ChoiceService {
 
     public List<Choice> getStudentChoices(int campaignId, int studentId) {
         return choiceDAO.findByStudentAndCampaign(campaignId, studentId);
+    }
+
+    public List<RegistrationService.AlternativeSession> getAlternativeSessions(int campaignId, int studentId, int sessionId) {
+        model.SessionSlot session = sessionDAO.findById(sessionId);
+        if (session == null) return new java.util.ArrayList<>();
+        return registrationService.findAlternativeSessions(campaignId, studentId, session);
     }
 }

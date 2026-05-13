@@ -34,6 +34,7 @@ import main.BaseComp;
 import main.BaseWindow;
 import model.Campaign;
 import model.Dominante;
+import model.Registration;
 import model.SessionSlot;
 import model.User;
 import service.CampaignService;
@@ -41,13 +42,16 @@ import service.ServiceResult;
 import service.SessionService;
 import service.AssignmentService;
 import service.DominanteService;
+import service.StatisticsService;
+import service.RegistrationService;
 
 public class AdminDashboardScreen implements AppScreen {
     private enum Section {
         DASHBOARD,
         DOMINANTES,
         SESSIONS,
-        CAMPAGNE
+        CAMPAGNE,
+        STATS
     }
 
     private static class DominanteStat {
@@ -71,6 +75,8 @@ public class AdminDashboardScreen implements AppScreen {
     private final SessionService sessionService;
     private final DominanteService dominanteService;
     private final AssignmentService assignmentService;
+    private final StatisticsService statisticsService;
+    private final RegistrationService registrationService;
 
     private final SidebarMenu sidebar;
     private final PageHeader header;
@@ -131,6 +137,24 @@ public class AdminDashboardScreen implements AppScreen {
     private final PrimaryButton autoAssignButton;
     private final Label campaignFeedbackLabel;
 
+    private final BaseComp statsSection;
+    private final ScrollView statsScroll;
+    private final BaseComp statsContent;
+    private final KpiCard statsTotalSessionsKpi;
+    private final KpiCard statsCompleteSessionsKpi;
+    private final KpiCard statsFillRateKpi;
+    private final KpiCard statsUnregisteredKpi;
+    private final SurfaceCard unregisteredStudentsCard;
+    private final Label unregisteredStudentsTitle;
+    private final ScrollView unregisteredScroll;
+    private final BaseComp unregisteredList;
+    private final SurfaceCard studentPlanningCard;
+    private final Label studentPlanningTitle;
+    private final Label selectedStudentLabel;
+    private final ScrollView planningScroll;
+    private final BaseComp planningList;
+    private final Label noStudentSelectedLabel;
+    private User selectedStudentForPlanning;
     private Campaign activeCampaign;
     private Section activeSection;
     private boolean dominanteDarkMode;
@@ -151,6 +175,8 @@ public class AdminDashboardScreen implements AppScreen {
         this.sessionService = new SessionService();
         this.dominanteService = new DominanteService();
         this.assignmentService = new AssignmentService();
+        this.statisticsService = new StatisticsService();
+        this.registrationService = new RegistrationService();
 
         ArrayList<SidebarMenu.Item> items = new ArrayList<>();
         items.add(new SidebarMenu.Item("dashboard", "Tableau de bord"));
@@ -315,6 +341,53 @@ public class AdminDashboardScreen implements AppScreen {
         campagneContent.addChild(campaignFormCard);
         campagneSection.addChild(campagneScroll);
 
+        this.statsSection = new BaseComp(null);
+        this.statsScroll = new ScrollView(0, 0, 100, 100);
+        this.statsContent = statsScroll.getContent();
+        statsSection.addChild(statsScroll);
+
+        this.statsTotalSessionsKpi = new KpiCard("Sessions totales", "0", "Nombre total", new Color(59, 130, 246));
+        this.statsCompleteSessionsKpi = new KpiCard("Sessions completes", "0", "Plein", new Color(34, 197, 94));
+        this.statsFillRateKpi = new KpiCard("Taux remplissage", "0%", "Moyenne", new Color(245, 158, 11));
+        this.statsUnregisteredKpi = new KpiCard("Non inscrits", "0", "Etudiants", new Color(239, 68, 68));
+
+        statsContent.addChild(statsTotalSessionsKpi);
+        statsContent.addChild(statsCompleteSessionsKpi);
+        statsContent.addChild(statsFillRateKpi);
+        statsContent.addChild(statsUnregisteredKpi);
+
+        this.unregisteredStudentsCard = new SurfaceCard(0, 0, 100, 100, PANEL_BG, PANEL_BORDER, 12);
+        this.unregisteredStudentsTitle = new Label("Etudiants non inscrits", 0, 0, 200, 22);
+        unregisteredStudentsTitle.setFont(new Font("Dialog", Font.BOLD, 16));
+        unregisteredStudentsTitle.setColor(TEXT_MAIN);
+        unregisteredStudentsCard.addChild(unregisteredStudentsTitle);
+
+        this.unregisteredScroll = new ScrollView(0, 0, 100, 100);
+        this.unregisteredList = unregisteredScroll.getContent();
+        unregisteredStudentsCard.addChild(unregisteredScroll);
+        statsContent.addChild(unregisteredStudentsCard);
+
+        this.studentPlanningCard = new SurfaceCard(0, 0, 100, 100, PANEL_BG, PANEL_BORDER, 12);
+        this.studentPlanningTitle = new Label("Planning de l'etudiant", 0, 0, 250, 22);
+        studentPlanningTitle.setFont(new Font("Dialog", Font.BOLD, 16));
+        studentPlanningTitle.setColor(TEXT_MAIN);
+        studentPlanningCard.addChild(studentPlanningTitle);
+
+        this.selectedStudentLabel = new Label("Aucun selectionne", 0, 0, 300, 20);
+        selectedStudentLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+        selectedStudentLabel.setColor(TEXT_MUTED);
+        studentPlanningCard.addChild(selectedStudentLabel);
+
+        this.planningScroll = new ScrollView(0, 0, 100, 100);
+        this.planningList = planningScroll.getContent();
+
+        this.noStudentSelectedLabel = new Label("Selectionnez un etudiant pour voir son planning", 0, 0, 300, 20);
+        noStudentSelectedLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+        noStudentSelectedLabel.setColor(TEXT_MUTED);
+        planningList.addChild(noStudentSelectedLabel);
+        studentPlanningCard.addChild(planningScroll);
+        statsContent.addChild(studentPlanningCard);
+
         this.activeSection = Section.DASHBOARD;
         applyDarkTheme();
     }
@@ -354,11 +427,13 @@ public class AdminDashboardScreen implements AppScreen {
         dominantesSection.setBounds(0, 0, mainW, sectionHost.getHeight());
         sessionsSection.setBounds(0, 0, mainW, sectionHost.getHeight());
         campagneSection.setBounds(0, 0, mainW, sectionHost.getHeight());
+        statsSection.setBounds(0, 0, mainW, sectionHost.getHeight());
 
         layoutDashboard(mainW);
         layoutDominantes(mainW);
         layoutSessions(mainW);
         layoutCampagne(mainW);
+        layoutStats(mainW);
         relayoutActiveSection();
 
         window.invalidateAll();
@@ -494,6 +569,37 @@ public class AdminDashboardScreen implements AppScreen {
         campagneScroll.setContentWidth(mainW);
     }
 
+    private void layoutStats(int mainW) {
+        int gap = 12;
+        int kpiW = (mainW - gap * 3) / 4;
+        int kpiH = 100;
+        int startY = 12;
+
+        statsScroll.setBounds(0, 0, mainW, sectionHost.getHeight());
+
+        statsTotalSessionsKpi.setBounds(0, startY, kpiW, kpiH);
+        statsCompleteSessionsKpi.setBounds(kpiW + gap, startY, kpiW, kpiH);
+        statsFillRateKpi.setBounds((kpiW + gap) * 2, startY, kpiW, kpiH);
+        statsUnregisteredKpi.setBounds((kpiW + gap) * 3, startY, kpiW, kpiH);
+
+        int cardY = startY + kpiH + gap;
+        int cardH = Math.max(200, sectionHost.getHeight() - cardY - 220);
+        int halfW = (mainW - gap) / 2;
+
+        unregisteredStudentsCard.setBounds(0, cardY, halfW, cardH);
+        unregisteredStudentsTitle.setBounds(16, 12, halfW - 32, 22);
+        unregisteredScroll.setBounds(8, 40, halfW - 16, cardH - 48);
+
+        studentPlanningCard.setBounds(halfW + gap, cardY, halfW, cardH);
+        studentPlanningTitle.setBounds(16, 12, halfW - 32, 22);
+        selectedStudentLabel.setBounds(16, 38, halfW - 32, 20);
+        planningScroll.setBounds(8, 64, halfW - 16, cardH - 80);
+
+        int contentHeight = cardY + cardH + 24;
+        statsScroll.setContentHeight(Math.max(sectionHost.getHeight(), contentHeight));
+        statsScroll.setContentWidth(mainW);
+    }
+
     private void onSidebarSelect(String key) {
         if ("dominantes".equals(key)) {
             activeSection = Section.DOMINANTES;
@@ -501,6 +607,8 @@ public class AdminDashboardScreen implements AppScreen {
             activeSection = Section.SESSIONS;
         } else if ("campagne".equals(key)) {
             activeSection = Section.CAMPAGNE;
+        } else if ("stats".equals(key)) {
+            activeSection = Section.STATS;
         } else {
             activeSection = Section.DASHBOARD;
         }
@@ -529,6 +637,13 @@ public class AdminDashboardScreen implements AppScreen {
             headerTitle("Parametrage de la campagne");
             sectionHost.addChild(campagneSection);
             refreshCampaignForm();
+            return;
+        }
+        if (activeSection == Section.STATS) {
+            header.setSubtitle("Statistiques et analyse des inscriptions");
+            headerTitle("Statistiques");
+            sectionHost.addChild(statsSection);
+            refreshStatsView();
             return;
         }
 
@@ -583,6 +698,7 @@ public class AdminDashboardScreen implements AppScreen {
             case DOMINANTES -> refreshDominantesView();
             case SESSIONS -> refreshSessionsView();
             case CAMPAGNE -> refreshCampaignForm();
+            case STATS -> refreshStatsView();
             case DASHBOARD -> refreshDashboardView();
         }
         window.requestRenderIfNeeded();
@@ -757,6 +873,7 @@ public class AdminDashboardScreen implements AppScreen {
                     + "  |  " + room;
             row.setData(dominanteName + " - " + safe(session.getTitle()), details, fillRate,
                     accentForCode(dominante == null ? "--" : dominante.getCode()));
+            row.setOnManage(() -> openManageSessionModal(current, allocated));
             sessionsList.addChild(row);
             y += 76;
             visibleCount++;
@@ -785,6 +902,126 @@ public class AdminDashboardScreen implements AppScreen {
         startDateInput.setValue(safe(activeCampaign.getStartDate()));
         endDateInput.setValue(safe(activeCampaign.getEndDate()));
         campaignFeedbackLabel.setText("Statut actuel: " + safe(activeCampaign.getStatus()));
+    }
+
+    private void refreshStatsView() {
+        activeCampaign = resolveActiveCampaign();
+        
+        if (activeCampaign == null || user.getPromo() == null) {
+            statsTotalSessionsKpi.setValue("0");
+            statsCompleteSessionsKpi.setValue("0");
+            statsFillRateKpi.setValue("0%");
+            statsUnregisteredKpi.setValue("0");
+            clearChildren(unregisteredList);
+            clearChildren(planningList);
+            planningList.addChild(noStudentSelectedLabel);
+            return;
+        }
+
+        StatisticsService.StatsSummary stats = statisticsService.getStatsForCampaign(
+                activeCampaign.getId(), user.getPromo());
+
+        statsTotalSessionsKpi.setValue(String.valueOf(stats.totalSessions));
+        statsCompleteSessionsKpi.setValue(String.valueOf(stats.completeSessions));
+        statsFillRateKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
+        statsUnregisteredKpi.setValue(String.valueOf(stats.unregisteredStudents));
+
+        refreshUnregisteredStudentsList();
+        
+        if (selectedStudentForPlanning != null) {
+            refreshStudentPlanning(selectedStudentForPlanning);
+        } else {
+            clearChildren(planningList);
+            planningList.addChild(noStudentSelectedLabel);
+        }
+    }
+
+    private void refreshUnregisteredStudentsList() {
+        clearChildren(unregisteredList);
+        
+        List<User> unregistered = statisticsService.getUnregisteredStudents(
+                activeCampaign.getId(), user.getPromo());
+        
+        int y = 0;
+        for (User student : unregistered) {
+            final User currentStudent = student;
+            Button studentButton = new Button(
+                    safe(student.getFullName()), 
+                    0, y, unregisteredScroll.getWidth() - 8, 36,
+                    () -> selectStudentForPlanning(currentStudent));
+            studentButton.setBackground(new Color(40, 50, 70));
+            studentButton.setForeground(TEXT_MAIN);
+            studentButton.setFont(new Font("Dialog", Font.PLAIN, 13));
+            unregisteredList.addChild(studentButton);
+            y += 40;
+        }
+
+        if (unregistered.isEmpty()) {
+            Label emptyLabel = new Label("Tous les etudiants sont inscrits", 0, 0, 200, 24);
+            emptyLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+            emptyLabel.setColor(TEXT_MUTED);
+            unregisteredList.addChild(emptyLabel);
+        }
+
+        unregisteredScroll.setContentHeight(Math.max(unregisteredScroll.getHeight(), y + 10));
+    }
+
+    private void selectStudentForPlanning(User student) {
+        selectedStudentForPlanning = student;
+        refreshStudentPlanning(student);
+    }
+
+    private void refreshStudentPlanning(User student) {
+        if (student == null) {
+            clearChildren(planningList);
+            planningList.addChild(noStudentSelectedLabel);
+            return;
+        }
+
+        selectedStudentLabel.setText("Planning de: " + safe(student.getFullName()));
+        
+        StatisticsService.StudentWithSessions data = statisticsService.getStudentSessions(
+                activeCampaign.getId(), student.getId());
+        
+        clearChildren(planningList);
+        
+        if (data.sessions == null || data.sessions.isEmpty()) {
+            Label noSessionsLabel = new Label("Aucune session assignee", 0, 0, 250, 24);
+            noSessionsLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+            noSessionsLabel.setColor(TEXT_MUTED);
+            planningList.addChild(noSessionsLabel);
+            planningScroll.setContentHeight(40);
+            return;
+        }
+
+        int y = 0;
+        for (StatisticsService.SessionInfo session : data.sessions) {
+            SurfaceCard sessionCard = new SurfaceCard(0, y, planningScroll.getWidth() - 8, 80, 
+                    new Color(30, 40, 55), PANEL_BORDER, 8);
+            
+            Label domLabel = new Label(session.dominanteName, 8, 8, 200, 18);
+            domLabel.setFont(new Font("Dialog", Font.BOLD, 13));
+            domLabel.setColor(new Color(96, 165, 250));
+            
+            Label titleLabel = new Label(session.title, 8, 28, 250, 16);
+            titleLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+            titleLabel.setColor(TEXT_MAIN);
+            
+            Label detailsLabel = new Label(
+                    session.date + " | " + session.startTime + "-" + session.endTime + " | " + session.room,
+                    8, 48, 250, 16);
+            detailsLabel.setFont(new Font("Dialog", Font.PLAIN, 11));
+            detailsLabel.setColor(TEXT_MUTED);
+            
+            sessionCard.addChild(domLabel);
+            sessionCard.addChild(titleLabel);
+            sessionCard.addChild(detailsLabel);
+            planningList.addChild(sessionCard);
+            
+            y += 88;
+        }
+
+        planningScroll.setContentHeight(Math.max(planningScroll.getHeight(), y + 10));
     }
 
     private void openCreateDominanteModal() {
@@ -1095,6 +1332,109 @@ public class AdminDashboardScreen implements AppScreen {
                 },
                 this::closeTopLayer);
         window.openModal(dialog);
+    }
+
+    private void openManageSessionModal(SessionSlot session, int currentAllocated) {
+        if (session == null || activeCampaign == null) {
+            return;
+        }
+        FormModal modal = new FormModal(600, 480, "Gerer inscriptions", this::closeTopLayer);
+
+        Label sessionInfoLabel = new Label(session.getTitle(), 18, 12, 560, 24);
+        sessionInfoLabel.setFont(new Font("Dialog", Font.BOLD, 16));
+        sessionInfoLabel.setColor(TEXT_MAIN);
+
+        Label capacityLabel = new Label("Capacite: " + session.getCapacity() + " | Inscrits: " + currentAllocated, 18, 40, 300, 20);
+        capacityLabel.setFont(new Font("Dialog", Font.PLAIN, 13));
+        capacityLabel.setColor(TEXT_MUTED);
+
+        Label studentListTitle = new Label("Etudiants non inscrits", 18, 70, 250, 20);
+        studentListTitle.setFont(new Font("Dialog", Font.BOLD, 13));
+        studentListTitle.setColor(TEXT_MAIN);
+
+        ScrollView studentScroll = new ScrollView(18, 94, 260, 320);
+        BaseComp studentList = studentScroll.getContent();
+        
+        Label planningTitle = new Label("Planning de l'etudiant", 322, 70, 250, 20);
+        planningTitle.setFont(new Font("Dialog", Font.BOLD, 13));
+        planningTitle.setColor(TEXT_MAIN);
+
+        ScrollView planningScroll = new ScrollView(322, 94, 260, 320);
+        BaseComp planningList = planningScroll.getContent();
+        
+        Label noStudentLabel = new Label("Selectionnez un etudiant", 0, 0, 240, 20);
+        noStudentLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+        noStudentLabel.setColor(TEXT_MUTED);
+        planningList.addChild(noStudentLabel);
+
+        modal.getBody().addChild(sessionInfoLabel);
+        modal.getBody().addChild(capacityLabel);
+        modal.getBody().addChild(studentListTitle);
+        modal.getBody().addChild(studentScroll);
+        modal.getBody().addChild(planningTitle);
+        modal.getBody().addChild(planningScroll);
+
+        List<User> allStudents = registrationService.getStudentsByPromo(activeCampaign.getPromo());
+        
+        int y = 0;
+
+        for (User student : allStudents) {
+            List<Registration> regs = registrationService.getStudentRegistrations(activeCampaign.getId(), student.getId());
+            boolean isRegistered = false;
+            for (Registration r : regs) {
+                if (r.getSessionId() == session.getId() && "ALLOCATED".equals(r.getStatus())) {
+                    isRegistered = true;
+                    break;
+                }
+            }
+            
+            final User currentStudent = student;
+            Button studentBtn = new Button(safe(student.getFullName()), 0, y, 240, 36, () -> {
+                refreshStudentPlanningInModal(currentStudent, activeCampaign.getId(), planningList, noStudentLabel);
+            });
+            studentBtn.setBackground(isRegistered ? new Color(34, 197, 94) : new Color(40, 50, 70));
+            studentBtn.setForeground(TEXT_MAIN);
+            studentBtn.setFont(new Font("Dialog", Font.PLAIN, 12));
+            studentList.addChild(studentBtn);
+            y += 40;
+        }
+
+        studentScroll.setContentHeight(Math.max(studentScroll.getHeight(), y + 10));
+        
+        Button closeBtn = new Button("Fermer", 480, 424, 100, 34, this::closeTopLayer);
+        closeBtn.setBackground(new Color(100, 116, 139));
+        modal.getBody().addChild(closeBtn);
+
+        window.openModal(modal);
+    }
+
+    private void refreshStudentPlanningInModal(User student, int campaignId, BaseComp planningList, Label noStudentLabel) {
+        if (student == null) {
+            clearChildren(planningList);
+            planningList.addChild(noStudentLabel);
+            return;
+        }
+        
+        clearChildren(planningList);
+        
+        StatisticsService.StudentWithSessions data = statisticsService.getStudentSessions(campaignId, student.getId());
+        
+        if (data.sessions == null || data.sessions.isEmpty()) {
+            Label emptyLabel = new Label("Aucun cours", 0, 0, 240, 20);
+            emptyLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+            emptyLabel.setColor(TEXT_MUTED);
+            planningList.addChild(emptyLabel);
+            return;
+        }
+        
+        int y = 0;
+        for (StatisticsService.SessionInfo s : data.sessions) {
+            Label sessionLabel = new Label(s.dominanteName + " - " + s.date + " " + s.startTime, 0, y, 240, 32);
+            sessionLabel.setFont(new Font("Dialog", Font.PLAIN, 11));
+            sessionLabel.setColor(TEXT_MAIN);
+            planningList.addChild(sessionLabel);
+            y += 36;
+        }
     }
 
     private void saveCampaignSettings() {
