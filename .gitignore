@@ -1,3 +1,4 @@
 .vscode
-*.class
+**/*.class
+build/
 *.log
