@@ -13,7 +13,7 @@ import gui.navigation.AppScreen;
  * - Initialisation de la vue avec la fenêtre principale et l'utilisateur authentifié
  * - Délégage du cycle de vie (mount/onResize) à AdminDashboardView
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class AdminDashboardScreen implements AppScreen {

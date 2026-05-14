@@ -20,7 +20,7 @@ import java.util.Map;
  * Fournit des informations agrégées sur les taux de remplissage, les inscriptions,
  * les étudiants non inscrits et l'état général des campagnes.
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class StatisticsService {

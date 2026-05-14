@@ -12,7 +12,7 @@ import java.util.List;
  * Offre des opérations de création, modification, suppression et recherche de sessions
  * avec respect des états de campagne et validation des capacités.
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class SessionService {

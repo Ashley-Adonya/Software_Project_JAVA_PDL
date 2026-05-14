@@ -18,7 +18,7 @@ import java.util.List;
  * Valide les inscriptions pour détecter les conflits horaires, génère des alternatives,
  * et assure l'interdépendance entre choix, allocations et inscriptions.
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class RegistrationService {

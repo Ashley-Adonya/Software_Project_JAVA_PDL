@@ -23,7 +23,7 @@ import model.Campaign;
  * - Affichage des messages de retour (succès/erreur)
  * - Gestion du redimensionnement
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class CampaignFormComponent {

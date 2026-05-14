@@ -16,7 +16,7 @@ import java.util.Set;
  * Permet aux étudiants de créer, modifier et consulter leurs préférences de sessions
  * avec validation des doublons et contraintes de conflits horaires.
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class ChoiceService {

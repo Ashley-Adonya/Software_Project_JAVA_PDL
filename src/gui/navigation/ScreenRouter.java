@@ -14,7 +14,7 @@ import java.util.Locale;
  * en fonction du rôle de l'utilisateur authentifié.
  * Gère l'initialisation de la fenêtre principale et les appels de redimensionnement.
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class ScreenRouter {

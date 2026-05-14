@@ -43,7 +43,7 @@ import service.StatisticsService;
  * - CAMPAGNE : configuration de la campagne
  * - STATS : statistiques et indicateurs
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class AdminDashboardView {

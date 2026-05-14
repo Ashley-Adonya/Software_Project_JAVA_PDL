@@ -25,7 +25,7 @@ import service.StatisticsService;
  * - Callback de sélection d'étudiant
  * - Gestion du redimensionnement pour adaptation responsive
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class StatsPanelComponent {

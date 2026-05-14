@@ -30,7 +30,7 @@ import service.SessionService;
  * - Callbacks pour création, édition, gestion et suppression
  * - Gestion du redimensionnement de la fenêtre
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class SessionListComponent {

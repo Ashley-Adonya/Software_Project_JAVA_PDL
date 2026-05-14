@@ -24,7 +24,7 @@ import service.DominanteService;
  * - Gestion de la pagination/scroll
  * - Gestion du redimensionnement
  * 
- * @author PDL Application
+ * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
 public class DominanteListComponent {
