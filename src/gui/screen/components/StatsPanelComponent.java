@@ -10,6 +10,7 @@ import components.Button;
 import components.Label;
 import components.ScrollView;
 import gui.components.KpiCard;
+import gui.components.SearchField;
 import gui.components.SurfaceCard;
 import main.BaseComp;
 import main.BaseWindow;
@@ -51,10 +52,13 @@ public class StatsPanelComponent {
     private final SurfaceCard studentsCard;
     private final Label studentsTitle;
     private final Label studentsSubtitle;
+    private final SearchField studentSearchField;
+    private final Label studentCountLabel;
     private final ScrollView unregisteredScroll;
     private final BaseComp unregisteredList;
 
     private Consumer<User> onSelectStudent = u -> {};
+    private List<User> cachedUnregisteredStudents = new ArrayList<>();
 
     public StatsPanelComponent(BaseWindow window, StatisticsService statisticsService) {
         this.statisticsService = statisticsService;
@@ -107,11 +111,21 @@ public class StatsPanelComponent {
         this.studentsSubtitle.setFont(new Font("Dialog", Font.PLAIN, 12));
         this.studentsSubtitle.setColor(new Color(161, 175, 202));
 
+        this.studentSearchField = new SearchField(18, 58, 320, 30, "Rechercher un étudiant");
+        this.studentSearchField.setColors(new Color(28, 36, 50), new Color(48, 60, 82), new Color(82, 107, 255), new Color(239, 244, 252), new Color(132, 144, 168));
+        this.studentSearchField.setOnChange(this::renderFilteredStudents);
+
+        this.studentCountLabel = new Label("0 étudiant", 18, 92, 220, 16);
+        this.studentCountLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+        this.studentCountLabel.setColor(new Color(161, 175, 202));
+
         this.unregisteredScroll = new ScrollView(0, 0, 100, 100);
         this.unregisteredList = unregisteredScroll.getContent();
 
         studentsCard.addChild(studentsTitle);
         studentsCard.addChild(studentsSubtitle);
+        studentsCard.addChild(studentSearchField);
+        studentsCard.addChild(studentCountLabel);
         studentsCard.addChild(unregisteredScroll);
 
         statsContent.addChild(heroCard);
@@ -192,7 +206,9 @@ public class StatsPanelComponent {
         int lowerH = Math.max(240, mainH - lowerY - 18);
         analysisCard.setBounds(0, lowerY, halfW, lowerH);
         studentsCard.setBounds(halfW + gap, lowerY, mainW - halfW - gap, lowerH);
-        unregisteredScroll.setBounds(16, 62, studentsCard.getWidth() - 32, lowerH - 74);
+        studentSearchField.setBounds(16, 58, Math.max(220, halfW - 32), 30);
+        studentCountLabel.setBounds(16, 92, halfW - 32, 16);
+        unregisteredScroll.setBounds(16, 130, studentsCard.getWidth() - 32, lowerH - 138);
     }
 
     private void clearChildren(main.BaseComp parent) { ArrayList<main.BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (main.BaseComp c : snapshot) parent.removeChild(c); }

@@ -10,6 +10,7 @@ import java.util.List;
 import components.Button;
 import components.FormModal;
 import components.Label;
+import gui.components.KpiCard;
 import gui.components.PageHeader;
 import gui.components.PrimaryButton;
 import gui.components.SidebarMenu;
@@ -58,8 +59,18 @@ public class AdminDashboardView {
     private final BaseComp dashboardRoot;
     private SurfaceCard dashboardHeroCard;
     private SurfaceCard dashboardNoteCard;
+    private SurfaceCard dashboardKpiCard;
+    private SurfaceCard dashboardShortcutCard;
     private Label dashboardSubtitleLabel;
     private Label dashboardStatusLabel;
+    private KpiCard dashboardSessionsKpi;
+    private KpiCard dashboardDominantesKpi;
+    private KpiCard dashboardFillKpi;
+    private KpiCard dashboardStudentsKpi;
+    private PrimaryButton dashboardGoDominantes;
+    private PrimaryButton dashboardGoSessions;
+    private PrimaryButton dashboardGoCampagne;
+    private PrimaryButton dashboardGoStats;
 
     private Color PAGE_BG = new Color(14, 18, 26);
     private static final DateTimeFormatter FR_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -158,8 +169,26 @@ public class AdminDashboardView {
         if (dashboardHeroCard != null) {
             dashboardHeroCard.setBounds(0, 0, mainW, 150);
         }
+        if (dashboardKpiCard != null) {
+            dashboardKpiCard.setBounds(0, 162, mainW, 120);
+            if (dashboardSessionsKpi != null) {
+                dashboardSessionsKpi.setBounds(0, 0, (mainW - 36) / 4, 120);
+                dashboardDominantesKpi.setBounds((mainW - 36) / 4 + 12, 0, (mainW - 36) / 4, 120);
+                dashboardFillKpi.setBounds(((mainW - 36) / 4 + 12) * 2, 0, (mainW - 36) / 4, 120);
+                dashboardStudentsKpi.setBounds(((mainW - 36) / 4 + 12) * 3, 0, (mainW - 36) / 4, 120);
+            }
+        }
+        if (dashboardShortcutCard != null) {
+            dashboardShortcutCard.setBounds(0, 294, mainW, 96);
+            if (dashboardGoDominantes != null) {
+                dashboardGoDominantes.setBounds(16, 38, 112, 32);
+                dashboardGoSessions.setBounds(134, 38, 100, 32);
+                dashboardGoCampagne.setBounds(240, 38, 104, 32);
+                dashboardGoStats.setBounds(350, 38, 86, 32);
+            }
+        }
         if (dashboardNoteCard != null) {
-            dashboardNoteCard.setBounds(0, 162, mainW, 74);
+            dashboardNoteCard.setBounds(0, 402, mainW, 74);
         }
         dominanteListComponent.onResize(mainW, sectionHost.getHeight());
         sessionListComponent.onResize(mainW, sectionHost.getHeight());
@@ -323,22 +352,47 @@ public class AdminDashboardView {
         dashboardStatusLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
         dashboardStatusLabel.setColor(new Color(125, 140, 168));
 
-        SurfaceCard note = new SurfaceCard(0, 0, 100, 74, new Color(23, 30, 45), new Color(52, 63, 92), 12);
-        Label noteTitle = new Label("Raccourcis", 16, 12, 100, 18);
-        noteTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
-        noteTitle.setColor(new Color(210, 219, 237));
-        Label noteText = new Label("Utilisez le menu à gauche pour naviguer. Le bouton Actualiser recharge uniquement la section active.", 16, 34, 560, 28);
+        dashboardKpiCard = new SurfaceCard(0, 0, 100, 120, new Color(22, 28, 39), new Color(52, 63, 92), 14);
+        dashboardSessionsKpi = new KpiCard("Sessions", "0", "Total", new Color(59, 130, 246));
+        dashboardDominantesKpi = new KpiCard("Dominantes", "0", "Actives", new Color(168, 85, 247));
+        dashboardFillKpi = new KpiCard("Remplissage", "0%", "Moyenne", new Color(245, 158, 11));
+        dashboardStudentsKpi = new KpiCard("Etudiants", "0", "Non inscrits", new Color(239, 68, 68));
+        dashboardKpiCard.addChild(dashboardSessionsKpi);
+        dashboardKpiCard.addChild(dashboardDominantesKpi);
+        dashboardKpiCard.addChild(dashboardFillKpi);
+        dashboardKpiCard.addChild(dashboardStudentsKpi);
+
+        dashboardShortcutCard = new SurfaceCard(0, 0, 100, 96, new Color(23, 30, 45), new Color(52, 63, 92), 12);
+        Label shortcutTitle = new Label("Raccourcis", 16, 12, 140, 18);
+        shortcutTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
+        shortcutTitle.setColor(new Color(210, 219, 237));
+        dashboardGoDominantes = new PrimaryButton("Dominantes", 16, 38, 112, 32, () -> onSidebarSelect("dominantes"));
+        dashboardGoSessions = new PrimaryButton("Sessions", 134, 38, 100, 32, () -> onSidebarSelect("sessions"));
+        dashboardGoCampagne = new PrimaryButton("Campagne", 240, 38, 104, 32, () -> onSidebarSelect("campagne"));
+        dashboardGoStats = new PrimaryButton("Stats", 350, 38, 86, 32, () -> onSidebarSelect("stats"));
+        dashboardGoDominantes.setBackground(new Color(45, 54, 76));
+        dashboardGoSessions.setBackground(new Color(45, 54, 76));
+        dashboardGoCampagne.setBackground(new Color(45, 54, 76));
+        dashboardGoStats.setBackground(new Color(45, 54, 76));
+        dashboardShortcutCard.addChild(shortcutTitle);
+        dashboardShortcutCard.addChild(dashboardGoDominantes);
+        dashboardShortcutCard.addChild(dashboardGoSessions);
+        dashboardShortcutCard.addChild(dashboardGoCampagne);
+        dashboardShortcutCard.addChild(dashboardGoStats);
+
+        dashboardNoteCard = new SurfaceCard(0, 0, 100, 74, new Color(23, 30, 45), new Color(52, 63, 92), 12);
+        Label noteText = new Label("Le tableau de bord charge les données en cache et reste réactif tant qu'aucune actualisation n'est demandée.", 16, 26, 640, 28);
         noteText.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
         noteText.setColor(new Color(145, 158, 184));
+        dashboardNoteCard.addChild(noteText);
 
         dashboardHeroCard.addChild(title);
         dashboardHeroCard.addChild(dashboardSubtitleLabel);
         dashboardHeroCard.addChild(dashboardStatusLabel);
-        dashboardNoteCard = note;
-        dashboardNoteCard.addChild(noteTitle);
-        dashboardNoteCard.addChild(noteText);
 
         root.addChild(dashboardHeroCard);
+        root.addChild(dashboardKpiCard);
+        root.addChild(dashboardShortcutCard);
         root.addChild(dashboardNoteCard);
         root.setVisible(false);
         return root;
@@ -349,9 +403,22 @@ public class AdminDashboardView {
             if (activeCampaign == null) {
                 dashboardSubtitleLabel.setText("Aucune campagne ouverte actuellement");
                 dashboardStatusLabel.setText("Passez par Campagne pour créer ou mettre à jour les paramètres.");
+                if (dashboardSessionsKpi != null) {
+                    dashboardSessionsKpi.setValue("0");
+                    dashboardDominantesKpi.setValue(String.valueOf(dominanteService.listAll().size()));
+                    dashboardFillKpi.setValue("0%");
+                    dashboardStudentsKpi.setValue("0");
+                }
             } else {
                 dashboardSubtitleLabel.setText("Campagne active: " + safe(activeCampaign.getName()) + " • Promo " + safe(activeCampaign.getPromo()));
                 dashboardStatusLabel.setText("Période: " + safe(activeCampaign.getRegistrationDay()) + " • Statut: " + safe(activeCampaign.getStatus()));
+                StatisticsService.StatsSummary stats = statisticsService.getStatsForCampaign(activeCampaign.getId(), activeCampaign.getPromo());
+                if (dashboardSessionsKpi != null) {
+                    dashboardSessionsKpi.setValue(String.valueOf(stats.totalSessions));
+                    dashboardDominantesKpi.setValue(String.valueOf(dominanteService.listAll().size()));
+                    dashboardFillKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
+                    dashboardStudentsKpi.setValue(String.valueOf(stats.unregisteredStudents));
+                }
             }
         }
     }

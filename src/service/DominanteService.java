@@ -22,7 +22,7 @@ public class DominanteService {
     }
 
     public ArrayList<Dominante> listAll() {
-        List<Dominante> dominantes = dominanteDAO.findAll();
+        List<Dominante> dominantes = CacheManager.getOrLoad("dominante:all", () -> dominanteDAO.findAll());
         if (dominantes instanceof ArrayList<Dominante> arrayList) {
             return arrayList;
         }
@@ -38,6 +38,8 @@ public class DominanteService {
         if (id <= 0) {
             return ServiceResult.fail("Creation dominante echouee");
         }
+        CacheManager.invalidatePrefix("dominante:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Dominante creee (id=" + id + ")");
     }
 
@@ -53,6 +55,8 @@ public class DominanteService {
         if (!ok) {
             return ServiceResult.fail("Modification dominante echouee");
         }
+        CacheManager.invalidatePrefix("dominante:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Dominante modifiee");
     }
 
@@ -64,6 +68,8 @@ public class DominanteService {
         if (!ok) {
             return ServiceResult.fail("Suppression dominante echouee");
         }
+        CacheManager.invalidatePrefix("dominante:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Dominante supprimee");
     }
 

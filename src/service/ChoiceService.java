@@ -89,11 +89,14 @@ public class ChoiceService {
         if (!ok) {
             return ServiceResult.fail("Enregistrement des choix echoue");
         }
+        CacheManager.invalidatePrefix("choice:");
+        CacheManager.invalidatePrefix("registration:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Choix enregistres");
     }
 
     public List<Choice> getStudentChoices(int campaignId, int studentId) {
-        return choiceDAO.findByStudentAndCampaign(campaignId, studentId);
+        return CacheManager.getOrLoad("choice:student:" + campaignId + ":" + studentId, () -> choiceDAO.findByStudentAndCampaign(campaignId, studentId));
     }
 
     public List<RegistrationService.AlternativeSession> getAlternativeSessions(int campaignId, int studentId, int sessionId) {

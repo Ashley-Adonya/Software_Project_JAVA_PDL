@@ -42,6 +42,8 @@ public class SessionService {
         if (id <= 0) {
             return ServiceResult.fail("Creation session echouee");
         }
+        CacheManager.invalidatePrefix("session:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Session creee (id=" + id + ")");
     }
 
@@ -65,6 +67,8 @@ public class SessionService {
         if (!ok) {
             return ServiceResult.fail("Modification session echouee");
         }
+        CacheManager.invalidatePrefix("session:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Session modifiee");
     }
 
@@ -82,19 +86,26 @@ public class SessionService {
         if (!ok) {
             return ServiceResult.fail("Suppression session echouee");
         }
+        CacheManager.invalidatePrefix("session:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Session supprimee");
     }
 
     public List<SessionSlot> listByCampaign(int campaignId) {
-        return sessionDAO.findByCampaign(campaignId);
+        return CacheManager.getOrLoad("session:campaign:" + campaignId, () -> sessionDAO.findByCampaign(campaignId));
     }
 
     public List<SessionSlot> searchSessions(int campaignId, String dominanteNameLike, int fromMinute, int toMinute) {
-        return sessionDAO.searchByDominanteNameAndTime(campaignId, dominanteNameLike, fromMinute, toMinute);
+        String key = "session:search:" + campaignId + ":" + safe(dominanteNameLike) + ":" + fromMinute + ":" + toMinute;
+        return CacheManager.getOrLoad(key, () -> sessionDAO.searchByDominanteNameAndTime(campaignId, dominanteNameLike, fromMinute, toMinute));
     }
 
     public Map<Integer, Integer> countAllocationsBySessionForCampaign(int campaignId) {
-        return sessionDAO.countBySessionForCampaign(campaignId);
+        return CacheManager.getOrLoad("session:allocations:" + campaignId, () -> sessionDAO.countBySessionForCampaign(campaignId));
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim().toUpperCase();
     }
     private String validateSession(SessionSlot session) {
         if (session == null) {

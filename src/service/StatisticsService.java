@@ -67,118 +67,130 @@ public class StatisticsService {
     }
 
     public StatsSummary getStatsForCampaign(int campaignId, String promo) {
-        StatsSummary stats = new StatsSummary();
-        
-        List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
-        stats.totalSessions = sessions.size();
-        
-        List<Integer> registeredStudentIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
-        
-        int totalCapacity = 0;
-        int totalAllocated = 0;
-        int completeSessions = 0;
-        
-        Map<Integer, Integer> allocationsBySession = sessionDAO.countBySessionForCampaign(campaignId);
-        
-        for (SessionSlot session : sessions) {
-            totalCapacity += session.getCapacity();
-            Integer allocated = allocationsBySession.get(session.getId());
-            int alloc = allocated != null ? allocated : 0;
-            totalAllocated += alloc;
-            
-            if (alloc >= session.getCapacity()) {
-                completeSessions++;
+        return CacheManager.getOrLoad("stats:summary:" + campaignId + ":" + safe(promo), () -> {
+            StatsSummary stats = new StatsSummary();
+
+            List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
+            stats.totalSessions = sessions.size();
+
+            List<Integer> registeredStudentIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
+
+            int totalCapacity = 0;
+            int totalAllocated = 0;
+            int completeSessions = 0;
+
+            Map<Integer, Integer> allocationsBySession = sessionDAO.countBySessionForCampaign(campaignId);
+
+            for (SessionSlot session : sessions) {
+                totalCapacity += session.getCapacity();
+                Integer allocated = allocationsBySession.get(session.getId());
+                int alloc = allocated != null ? allocated : 0;
+                totalAllocated += alloc;
+
+                if (alloc >= session.getCapacity()) {
+                    completeSessions++;
+                }
             }
-        }
-        
-        stats.completeSessions = completeSessions;
-        stats.totalCapacity = totalCapacity;
-        stats.totalAllocated = totalAllocated;
-        
-        if (totalCapacity > 0) {
-            stats.averageFillRate = (totalAllocated * 100.0) / totalCapacity;
-        } else {
-            stats.averageFillRate = 0;
-        }
-        
-        List<User> allStudents = userDAO.findAllStudentsByPromo(promo);
-        stats.totalStudents = allStudents.size();
-        stats.registeredStudents = registeredStudentIds.size();
-        stats.unregisteredStudents = stats.totalStudents - stats.registeredStudents;
-        
-        return stats;
+
+            stats.completeSessions = completeSessions;
+            stats.totalCapacity = totalCapacity;
+            stats.totalAllocated = totalAllocated;
+
+            if (totalCapacity > 0) {
+                stats.averageFillRate = (totalAllocated * 100.0) / totalCapacity;
+            } else {
+                stats.averageFillRate = 0;
+            }
+
+            List<User> allStudents = userDAO.findAllStudentsByPromo(promo);
+            stats.totalStudents = allStudents.size();
+            stats.registeredStudents = registeredStudentIds.size();
+            stats.unregisteredStudents = stats.totalStudents - registeredStudentIds.size();
+
+            return stats;
+        });
     }
 
     public List<User> getUnregisteredStudents(int campaignId, String promo) {
-        List<Integer> registeredIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
-        return userDAO.findStudentsWithoutRegistrationInCampaign(promo, campaignId, registeredIds);
+        return CacheManager.getOrLoad("stats:unregistered:" + campaignId + ":" + safe(promo), () -> {
+            List<Integer> registeredIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
+            return userDAO.findStudentsWithoutRegistrationInCampaign(promo, campaignId, registeredIds);
+        });
     }
 
     public StudentWithSessions getStudentSessions(int campaignId, int studentId) {
-        StudentWithSessions result = new StudentWithSessions();
-        
-        result.student = userDAO.findById(studentId);
-        if (result.student == null) {
-            return result;
-        }
-        
-        List<Registration> registrations = registrationDAO.findByStudentAndCampaign(campaignId, studentId);
-        
-        List<SessionSlot> allSessions = sessionDAO.findByCampaign(campaignId);
-        Map<Integer, SessionSlot> sessionMap = new HashMap<>();
-        for (SessionSlot s : allSessions) {
-            sessionMap.put(s.getId(), s);
-        }
-        
-        List<Dominante> dominantes = dominanteDAO.findAll();
-        Map<Integer, Dominante> dominanteMap = new HashMap<>();
-        for (Dominante d : dominantes) {
-            dominanteMap.put(d.getId(), d);
-        }
-        
-        result.sessions = new ArrayList<>();
-        
-        for (Registration reg : registrations) {
-            SessionSlot session = sessionMap.get(reg.getSessionId());
-            if (session != null) {
-                SessionInfo info = new SessionInfo();
-                
-                Dominante dom = dominanteMap.get(session.getDominanteId());
-                info.dominanteName = dom != null ? dom.getName() : "Dominante #" + session.getDominanteId();
-                
-                info.title = session.getTitle();
-                info.room = session.getRoom();
-                info.date = session.getSessionDate();
-                info.startTime = formatMinute(session.getStartMinute());
-                info.endTime = formatMinute(session.getEndMinute());
-                info.capacity = session.getCapacity();
-                
-                int allocated = registrationDAO.countAllocatedBySession(campaignId, session.getId());
-                info.allocated = allocated;
-                
-                if (session.getCapacity() > 0) {
-                    info.fillRate = (allocated * 100.0) / session.getCapacity();
-                } else {
-                    info.fillRate = 0;
-                }
-                
-                result.sessions.add(info);
+        return CacheManager.getOrLoad("stats:student:" + campaignId + ":" + studentId, () -> {
+            StudentWithSessions result = new StudentWithSessions();
+
+            result.student = userDAO.findById(studentId);
+            if (result.student == null) {
+                return result;
             }
-        }
-        
-        return result;
+
+            List<Registration> registrations = registrationDAO.findByStudentAndCampaign(campaignId, studentId);
+
+            List<SessionSlot> allSessions = sessionDAO.findByCampaign(campaignId);
+            Map<Integer, SessionSlot> sessionMap = new HashMap<>();
+            for (SessionSlot s : allSessions) {
+                sessionMap.put(s.getId(), s);
+            }
+
+            List<Dominante> dominantes = dominanteDAO.findAll();
+            Map<Integer, Dominante> dominanteMap = new HashMap<>();
+            for (Dominante d : dominantes) {
+                dominanteMap.put(d.getId(), d);
+            }
+
+            result.sessions = new ArrayList<>();
+
+            for (Registration reg : registrations) {
+                SessionSlot session = sessionMap.get(reg.getSessionId());
+                if (session != null) {
+                    SessionInfo info = new SessionInfo();
+
+                    Dominante dom = dominanteMap.get(session.getDominanteId());
+                    info.dominanteName = dom != null ? dom.getName() : "Dominante #" + session.getDominanteId();
+
+                    info.title = session.getTitle();
+                    info.room = session.getRoom();
+                    info.date = session.getSessionDate();
+                    info.startTime = formatMinute(session.getStartMinute());
+                    info.endTime = formatMinute(session.getEndMinute());
+                    info.capacity = session.getCapacity();
+
+                    int allocated = registrationDAO.countAllocatedBySession(campaignId, session.getId());
+                    info.allocated = allocated;
+
+                    if (session.getCapacity() > 0) {
+                        info.fillRate = (allocated * 100.0) / session.getCapacity();
+                    } else {
+                        info.fillRate = 0;
+                    }
+
+                    result.sessions.add(info);
+                }
+            }
+
+            return result;
+        });
     }
 
     public Campaign getActiveCampaign() {
-        List<Campaign> openCampaigns = campaignDAO.findByStatus("OPEN");
-        if (openCampaigns != null && !openCampaigns.isEmpty()) {
-            return openCampaigns.get(0);
-        }
-        List<Campaign> prepCampaigns = campaignDAO.findByStatus("PREPARATION");
-        if (prepCampaigns != null && !prepCampaigns.isEmpty()) {
-            return prepCampaigns.get(0);
-        }
-        return null;
+        return CacheManager.getOrLoad("stats:activeCampaign", () -> {
+            List<Campaign> openCampaigns = campaignDAO.findByStatus("OPEN");
+            if (openCampaigns != null && !openCampaigns.isEmpty()) {
+                return openCampaigns.get(0);
+            }
+            List<Campaign> prepCampaigns = campaignDAO.findByStatus("PREPARATION");
+            if (prepCampaigns != null && !prepCampaigns.isEmpty()) {
+                return prepCampaigns.get(0);
+            }
+            return null;
+        });
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim().toUpperCase();
     }
 
     private String formatMinute(int minute) {

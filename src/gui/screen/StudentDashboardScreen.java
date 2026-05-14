@@ -13,6 +13,7 @@ import javax.swing.SwingUtilities;
 import components.Label;
 import components.ScrollView;
 import gui.components.PageHeader;
+import gui.components.SearchField;
 import gui.components.SessionOfferCard;
 import gui.components.SidebarMenu;
 import gui.components.SurfaceCard;
@@ -54,6 +55,7 @@ public class StudentDashboardScreen implements AppScreen {
     private final PageHeader header;
     private final PrimaryButton refreshButton;
 
+    private final SearchField sessionSearchField;
     private final ScrollView offersScroll;
     private final BaseComp offersContent;
     private final SurfaceCard selectionsCard;
@@ -103,6 +105,10 @@ public class StudentDashboardScreen implements AppScreen {
         this.sidebar.setDarkMode(true);
         this.refreshButton = new PrimaryButton("Actualiser", 0, 0, 110, 28, this::refreshCurrentData);
         this.refreshButton.setBackground(new Color(44, 54, 76));
+
+        this.sessionSearchField = new SearchField(0, 0, 320, 32, "Filtrer par dominante ou session");
+        this.sessionSearchField.setColors(new Color(28, 36, 50), new Color(48, 60, 82), new Color(82, 107, 255), new Color(239, 244, 252), new Color(132, 144, 168));
+        this.sessionSearchField.setOnChange(this::rebuildOffersCards);
 
         this.offersScroll = new ScrollView(0, 0, 100, 100);
         this.offersContent = offersScroll.getContent();
@@ -160,8 +166,9 @@ public class StudentDashboardScreen implements AppScreen {
         content.addChild(sidebar);
         content.addChild(header);
         content.addChild(refreshButton);
+        content.addChild(sessionSearchField);
         content.addChild(offersScroll);
-        content.addChild(selectionsCard);
+        content.addChild(selectionsCard;
 
         refreshData();
         renderSection();
@@ -189,20 +196,25 @@ public class StudentDashboardScreen implements AppScreen {
         int selectionH = 160;
 
         if (activeSection == Section.SEARCH) {
+            int searchY = topY;
+            int searchH = 32;
             int selectionY = h - bottomMargin - selectionH;
-            int scrollY = topY;
-            int scrollH = Math.max(220, selectionY - scrollY - gap);
+            int scrollY = searchY + searchH + gap;
+            int scrollH = Math.max(200, selectionY - scrollY - gap);
             if (scrollH < 140) {
-                scrollH = Math.max(140, h - topY - bottomMargin);
-                selectionY = topY + scrollH + gap;
+                scrollH = Math.max(140, h - scrollY - bottomMargin - selectionH);
+                selectionY = scrollY + scrollH + gap;
             }
 
+            sessionSearchField.setVisible(true);
+            sessionSearchField.setBounds(mainX, searchY, Math.min(420, mainW), searchH);
             offersScroll.setVisible(true);
             offersScroll.setBounds(mainX, scrollY, mainW, scrollH);
             relayoutOffersList(mainW);
 
             selectionsCard.setBounds(mainX, selectionY, mainW, selectionH);
         } else {
+            sessionSearchField.setVisible(false);
             offersScroll.setVisible(false);
             selectionsCard.setBounds(mainX, topY, mainW, 160);
         }
@@ -246,6 +258,7 @@ public class StudentDashboardScreen implements AppScreen {
         for (SessionOfferCard offer : offerCards) {
             offer.setVisible(searchMode);
         }
+        sessionSearchField.setVisible(searchMode);
         selectionsCard.setVisible(true);
         setEditingControlsVisible(searchMode);
         if (searchMode) {
@@ -330,10 +343,18 @@ public class StudentDashboardScreen implements AppScreen {
             return;
         }
 
+        String query = sessionSearchField.getText() == null ? "" : sessionSearchField.getText().trim().toLowerCase();
+        Map<Integer, String> dominantNames = resolveDominantNames();
+
         for (SessionSlot s : currentSessions) {
+            String dominantName = dominantNames.getOrDefault(Integer.valueOf(s.getDominanteId()), "Dominante #" + s.getDominanteId());
+            String haystack = (safe(s.getTitle()) + " " + safe(s.getRoom()) + " " + dominantName).toLowerCase();
+            if (!query.isEmpty() && !haystack.contains(query)) {
+                continue;
+            }
             SessionOfferCard card = new SessionOfferCard(
                     safe(s.getTitle()),
-                    safe(s.getSessionDate()) + " - " + formatMinute(s.getStartMinute()) + " / " + formatMinute(s.getEndMinute()),
+                    dominantName + " • " + safe(s.getSessionDate()) + " - " + formatMinute(s.getStartMinute()) + " / " + formatMinute(s.getEndMinute()),
                     "Salle " + safe(s.getRoom()),
                     s.getCapacity() + " places",
                     () -> onToggleChoice(s));
@@ -341,6 +362,13 @@ public class StudentDashboardScreen implements AppScreen {
             offerCards.add(card);
             offerCardBySessionId.put(Integer.valueOf(s.getId()), card);
             offersContent.addChild(card);
+        }
+
+        if (offerCards.isEmpty()) {
+            SessionOfferCard empty = new SessionOfferCard("Aucun résultat", "Affinez votre recherche", "", "", () -> {});
+            empty.setActionBackground(ACTION_ADD_BG);
+            offerCards.add(empty);
+            offersContent.addChild(empty);
         }
     }
 
@@ -495,6 +523,15 @@ public class StudentDashboardScreen implements AppScreen {
                 card.setActionBackground(ACTION_ADD_BG);
             }
         }
+    }
+
+    private Map<Integer, String> resolveDominantNames() {
+        Map<Integer, String> dominantNames = new HashMap<>();
+        List<model.Dominante> dominantes = new service.DominanteService().listAll();
+        for (model.Dominante dominante : dominantes) {
+            dominantNames.put(Integer.valueOf(dominante.getId()), safe(dominante.getName()));
+        }
+        return dominantNames;
     }
 
     private List<Integer> getChoiceSessionIdsInOrder() {

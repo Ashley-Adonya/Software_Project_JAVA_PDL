@@ -151,6 +151,10 @@ public class RegistrationService {
             return ServiceResult.fail("Echec de l'inscription");
         }
 
+        CacheManager.invalidatePrefix("registration:");
+        CacheManager.invalidatePrefix("choice:");
+        CacheManager.invalidatePrefix("stats:");
+
         return ServiceResult.ok("Inscription effectuee");
     }
 
@@ -249,7 +253,8 @@ public class RegistrationService {
     }
 
     public List<Registration> getStudentRegistrations(int campaignId, int studentId) {
-        return registrationDAO.findByStudentAndCampaign(campaignId, studentId);
+        return CacheManager.getOrLoad("registration:student:" + campaignId + ":" + studentId,
+                () -> registrationDAO.findByStudentAndCampaign(campaignId, studentId));
     }
 
     public boolean canUpdateSessionCapacity(int sessionId, int newCapacity, int campaignId) {

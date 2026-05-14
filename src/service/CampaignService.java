@@ -34,7 +34,12 @@ public class CampaignService {
         if (campaign.getStatus() == null || campaign.getStatus().trim().isEmpty()) {
             campaign.setStatus("PREPARATION");
         }
-        return campaignDAO.create(campaign);
+        int id = campaignDAO.create(campaign);
+        if (id > 0) {
+            CacheManager.invalidatePrefix("campaign:");
+            CacheManager.invalidatePrefix("stats:");
+        }
+        return id;
     }
 
     public ServiceResult changeStatus(int campaignId, String nextStatus) {
@@ -52,6 +57,8 @@ public class CampaignService {
         if (!ok) {
             return ServiceResult.fail("Mise a jour du statut impossible");
         }
+        CacheManager.invalidatePrefix("campaign:");
+        CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Statut mis a jour: " + nextStatus);
     }
 
@@ -59,19 +66,28 @@ public class CampaignService {
         if (maxChoices <= 0) {
             return false;
         }
-        return campaignDAO.updateSettings(campaignId, name, registrationDay, startDate, endDate, maxChoices);
+        boolean ok = campaignDAO.updateSettings(campaignId, name, registrationDay, startDate, endDate, maxChoices);
+        if (ok) {
+            CacheManager.invalidatePrefix("campaign:");
+            CacheManager.invalidatePrefix("stats:");
+        }
+        return ok;
     }
 
     public Campaign getCampaign(int id) {
-        return campaignDAO.findById(id);
+        return CacheManager.getOrLoad("campaign:id:" + id, () -> campaignDAO.findById(id));
     }
 
     public List<Campaign> getCampaignsByPromo(String promo) {
-        return campaignDAO.findByPromo(promo);
+        return CacheManager.getOrLoad("campaign:promo:" + safe(promo), () -> campaignDAO.findByPromo(promo));
     }
 
     public List<Campaign> getCampaignsByStatus(String status) {
-        return campaignDAO.findByStatus(status);
+        return CacheManager.getOrLoad("campaign:status:" + safe(status), () -> campaignDAO.findByStatus(status));
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim().toUpperCase();
     }
 
     private boolean isAllowedTransition(String current, String nextStatus) {
