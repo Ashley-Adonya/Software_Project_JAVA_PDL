@@ -21,14 +21,13 @@ import main.BaseComp;
 import main.BaseWindow;
 import model.Campaign;
 import model.Dominante;
-// model.Registration removed
 import model.SessionSlot;
 import model.User;
 import service.CampaignService;
 import service.SessionService;
 import service.DominanteService;
 import service.StatisticsService;
-// removed unused services
+import gui.components.SurfaceCard;
 
 /**
  * Vue centralisée du tableau de bord administrateur.
@@ -56,6 +55,11 @@ public class AdminDashboardView {
     private final CampaignFormComponent campaignFormComponent;
     private final DominanteListComponent dominanteListComponent;
     private final StatsPanelComponent statsPanelComponent;
+    private final BaseComp dashboardRoot;
+    private SurfaceCard dashboardHeroCard;
+    private SurfaceCard dashboardNoteCard;
+    private Label dashboardSubtitleLabel;
+    private Label dashboardStatusLabel;
 
     private Color PAGE_BG = new Color(14, 18, 26);
     private static final DateTimeFormatter FR_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -73,6 +77,8 @@ public class AdminDashboardView {
     final PageHeader header;
     final PrimaryButton refreshButton;
     final BaseComp sectionHost;
+
+    private boolean sectionsMounted;
 
     private Campaign activeCampaign;
     
@@ -100,6 +106,7 @@ public class AdminDashboardView {
         this.refreshButton.setBackground(new Color(44, 54, 76));
 
         this.sectionHost = new BaseComp(null);
+        this.dashboardRoot = createDashboardRoot();
 
         this.sessionListComponent = new SessionListComponent(window, sessionService, dominanteService);
         this.campaignFormComponent = new CampaignFormComponent(window);
@@ -125,9 +132,11 @@ public class AdminDashboardView {
         content.addChild(refreshButton);
         content.addChild(sectionHost);
 
+        mountSectionsOnce();
         refreshAllData();
-        renderActiveSection();
         onResize();
+        applyActiveSectionVisibility();
+        refreshActiveSection();
     }
 
     public void onResize() {
@@ -145,16 +154,18 @@ public class AdminDashboardView {
         refreshButton.setBounds(mainX + mainW - 110, 24, 110, 28);
         sectionHost.setBounds(mainX, 82, mainW, h - 98);
 
-        // delegate sizing to active component
-        switch (activeSection) {
-            case DOMINANTES -> dominanteListComponent.onResize(mainW, sectionHost.getHeight());
-            case SESSIONS -> sessionListComponent.onResize(mainW, sectionHost.getHeight());
-            case CAMPAGNE -> campaignFormComponent.onResize(mainW);
-            case STATS -> statsPanelComponent.onResize(mainW, sectionHost.getHeight());
-            default -> campaignFormComponent.onResize(mainW);
+        dashboardRoot.setBounds(0, 0, mainW, sectionHost.getHeight());
+        if (dashboardHeroCard != null) {
+            dashboardHeroCard.setBounds(0, 0, mainW, 150);
         }
+        if (dashboardNoteCard != null) {
+            dashboardNoteCard.setBounds(0, 162, mainW, 74);
+        }
+        dominanteListComponent.onResize(mainW, sectionHost.getHeight());
+        sessionListComponent.onResize(mainW, sectionHost.getHeight());
+        campaignFormComponent.onResize(mainW);
+        statsPanelComponent.onResize(mainW, sectionHost.getHeight());
 
-        window.invalidateAll();
         window.requestRenderIfNeeded();
     }
 
@@ -189,43 +200,54 @@ public class AdminDashboardView {
 
     
 
-    private void renderActiveSection() {
-        clearChildren(sectionHost);
+    private void mountSectionsOnce() {
+        if (sectionsMounted) {
+            return;
+        }
+        sectionHost.addChild(dashboardRoot);
+        sectionHost.addChild(dominanteListComponent.getRoot());
+        sectionHost.addChild(sessionListComponent.getRoot());
+        sectionHost.addChild(campaignFormComponent.getRoot());
+        sectionHost.addChild(statsPanelComponent.getRoot());
+        sectionsMounted = true;
+    }
+
+    private void applyActiveSectionVisibility() {
+        updateHeaderSubtitle();
+        dashboardRoot.setVisible(activeSection == Section.DASHBOARD);
+        dominanteListComponent.getRoot().setVisible(activeSection == Section.DOMINANTES);
+        sessionListComponent.getRoot().setVisible(activeSection == Section.SESSIONS);
+        campaignFormComponent.getRoot().setVisible(activeSection == Section.CAMPAGNE);
+        statsPanelComponent.getRoot().setVisible(activeSection == Section.STATS);
+    }
+
+    private void updateHeaderSubtitle() {
         switch (activeSection) {
-            case DOMINANTES -> {
-                header.setSubtitle("Gerez les domaines d'etudes disponibles — Dominantes");
-                sectionHost.addChild(dominanteListComponent.getRoot());
-                dominanteListComponent.refresh();
-            }
+            case DOMINANTES -> header.setSubtitle("Gerez les domaines d'etudes disponibles — Dominantes");
+            case SESSIONS -> header.setSubtitle("Gerez les creneaux de presentation — Sessions");
+            case CAMPAGNE -> header.setSubtitle("Configurez les parametres generaux de la campagne d'inscriptions — Campagne");
+            case STATS -> header.setSubtitle("Statistiques et analyse des inscriptions — Statistiques");
+            default -> header.setSubtitle("Vue d'ensemble de la campagne en cours — Tableau de bord");
+        }
+    }
+
+    private void refreshActiveSection() {
+        switch (activeSection) {
+            case DOMINANTES -> dominanteListComponent.refresh();
             case SESSIONS -> {
-                header.setSubtitle("Gerez les creneaux de presentation — Sessions");
-                sectionHost.addChild(sessionListComponent.getRoot());
                 sessionListComponent.setActiveCampaignId(activeCampaign == null ? -1 : activeCampaign.getId());
                 sessionListComponent.refresh();
             }
-            case CAMPAGNE -> {
-                header.setSubtitle("Configurez les parametres generaux de la campagne d'inscriptions — Campagne");
-                sectionHost.addChild(campaignFormComponent.getRoot());
-                campaignFormComponent.refreshFrom(activeCampaign);
-            }
-            case STATS -> {
-                header.setSubtitle("Statistiques et analyse des inscriptions — Statistiques");
-                sectionHost.addChild(statsPanelComponent.getRoot());
-                statsPanelComponent.refresh(activeCampaign == null ? -1 : activeCampaign.getId(), user == null ? null : user.getPromo());
-            }
-            default -> {
-                header.setSubtitle("Vue d'ensemble de la campagne en cours — Tableau de bord");
-                // simple dashboard: show campaign form preview + KPIs via stats
-                sectionHost.addChild(campaignFormComponent.getRoot());
-                campaignFormComponent.refreshFrom(activeCampaign);
-            }
+            case CAMPAGNE -> campaignFormComponent.refreshFrom(activeCampaign);
+            case STATS -> statsPanelComponent.refresh(activeCampaign == null ? -1 : activeCampaign.getId(), user == null ? null : user.getPromo());
+            default -> refreshDashboardRoot();
         }
         window.requestRenderIfNeeded();
     }
 
     private void refreshCurrentSection() {
-        renderActiveSection();
-        onResize();
+        refreshAllData();
+        refreshActiveSection();
     }
 
     private void onSidebarSelect(String key) {
@@ -234,8 +256,9 @@ public class AdminDashboardView {
         else if ("campagne".equals(key)) activeSection = Section.CAMPAGNE;
         else if ("stats".equals(key)) activeSection = Section.STATS;
         else activeSection = Section.DASHBOARD;
-        renderActiveSection();
         onResize();
+        applyActiveSectionVisibility();
+        refreshActiveSection();
     }
 
     // --- basic modal and callback helpers (minimal implementations) ---
@@ -283,6 +306,55 @@ public class AdminDashboardView {
     private void openCreateDominanteModal() { FormModal modal = new FormModal(520, 260, "Nouvelle dominante", window::closeTopLayer); modal.getBody().addChild(new Label("Formulaire dominante (prototype)", 12,12,480,22)); modal.getBody().addChild(new Button("Fermer", 400,200,96,34,window::closeTopLayer)); window.openModal(modal); }
 
     private void openEditDominanteModal(Dominante d) { if (d == null) return; FormModal modal = new FormModal(520,260,"Modifier dominante", window::closeTopLayer); modal.getBody().addChild(new Label("Edition dominante: "+safe(d.getName()),12,12,480,22)); modal.getBody().addChild(new Button("Fermer",400,200,96,34,window::closeTopLayer)); window.openModal(modal); }
+
+    private BaseComp createDashboardRoot() {
+        BaseComp root = new BaseComp(null);
+
+        dashboardHeroCard = new SurfaceCard(0, 0, 100, 150, new Color(18, 24, 35), new Color(52, 63, 92), 14);
+        Label title = new Label("Vue d'ensemble", 18, 18, 400, 24);
+        title.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 22));
+        title.setColor(new Color(237, 242, 252));
+
+        dashboardSubtitleLabel = new Label("Chargement de la campagne active...", 18, 48, 560, 22);
+        dashboardSubtitleLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 13));
+        dashboardSubtitleLabel.setColor(new Color(160, 173, 200));
+
+        dashboardStatusLabel = new Label("Tableau central pour piloter les dominantes, sessions et statistiques.", 18, 76, 620, 20);
+        dashboardStatusLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        dashboardStatusLabel.setColor(new Color(125, 140, 168));
+
+        SurfaceCard note = new SurfaceCard(0, 0, 100, 74, new Color(23, 30, 45), new Color(52, 63, 92), 12);
+        Label noteTitle = new Label("Raccourcis", 16, 12, 100, 18);
+        noteTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
+        noteTitle.setColor(new Color(210, 219, 237));
+        Label noteText = new Label("Utilisez le menu à gauche pour naviguer. Le bouton Actualiser recharge uniquement la section active.", 16, 34, 560, 28);
+        noteText.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        noteText.setColor(new Color(145, 158, 184));
+
+        dashboardHeroCard.addChild(title);
+        dashboardHeroCard.addChild(dashboardSubtitleLabel);
+        dashboardHeroCard.addChild(dashboardStatusLabel);
+        dashboardNoteCard = note;
+        dashboardNoteCard.addChild(noteTitle);
+        dashboardNoteCard.addChild(noteText);
+
+        root.addChild(dashboardHeroCard);
+        root.addChild(dashboardNoteCard);
+        root.setVisible(false);
+        return root;
+    }
+
+    private void refreshDashboardRoot() {
+        if (dashboardSubtitleLabel != null && dashboardStatusLabel != null) {
+            if (activeCampaign == null) {
+                dashboardSubtitleLabel.setText("Aucune campagne ouverte actuellement");
+                dashboardStatusLabel.setText("Passez par Campagne pour créer ou mettre à jour les paramètres.");
+            } else {
+                dashboardSubtitleLabel.setText("Campagne active: " + safe(activeCampaign.getName()) + " • Promo " + safe(activeCampaign.getPromo()));
+                dashboardStatusLabel.setText("Période: " + safe(activeCampaign.getRegistrationDay()) + " • Statut: " + safe(activeCampaign.getStatus()));
+            }
+        }
+    }
 
     // Utility helpers
     String safe(String value) { return value == null || value.isBlank() ? "-" : value; }
