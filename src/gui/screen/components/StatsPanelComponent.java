@@ -211,5 +211,45 @@ public class StatsPanelComponent {
         unregisteredScroll.setBounds(16, 130, studentsCard.getWidth() - 32, lowerH - 138);
     }
 
+    /**
+     * Filtre la liste des étudiants non inscrits selon la requête de recherche.
+     * La recherche est effectuée sur le nom complet ou le login (case-insensitive).
+     * La liste de cache est conservée, seul l'affichage est filtré.
+     * 
+     * @param query Texte de recherche (peut être vide)
+     */
+    private void renderFilteredStudents(String query) {
+        clearChildren(unregisteredList);
+        String lowerQuery = (query == null ? "" : query).toLowerCase();
+        
+        List<User> filtered = new ArrayList<>();
+        for (User u : cachedUnregisteredStudents) {
+            if (u == null) continue;
+            String name = (u.getFullName() == null ? "" : u.getFullName()).toLowerCase();
+            String login = (u.getLogin() == null ? "" : u.getLogin()).toLowerCase();
+            if (name.contains(lowerQuery) || login.contains(lowerQuery)) {
+                filtered.add(u);
+            }
+        }
+        
+        int y = 0;
+        for (User u : filtered) {
+            String displayName = (u.getFullName() == null || u.getFullName().isBlank()) ? u.getLogin() : u.getFullName();
+            Button b = new Button(displayName, 0, y, Math.max(220, unregisteredScroll.getWidth() - 8), 38, () -> onSelectStudent.accept(u));
+            b.setBackground(new java.awt.Color(40, 50, 70));
+            unregisteredList.addChild(b);
+            y += 40;
+        }
+        
+        if (filtered.isEmpty()) {
+            Label l = new Label("Aucun résultat.", 0, 0, 280, 24);
+            l.setFont(new Font("Dialog", Font.PLAIN, 13));
+            l.setColor(new Color(172, 183, 204));
+            unregisteredList.addChild(l);
+        }
+        
+        unregisteredScroll.setContentHeight(Math.max(unregisteredScroll.getHeight(), y + 10));
+    }
+
     private void clearChildren(main.BaseComp parent) { ArrayList<main.BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (main.BaseComp c : snapshot) parent.removeChild(c); }
 }

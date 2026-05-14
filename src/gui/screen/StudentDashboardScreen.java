@@ -313,7 +313,7 @@ public class StudentDashboardScreen implements AppScreen {
         List<SessionSlot> sessions = sessionService.listByCampaign(currentCampaign.getId());
         this.currentSessions = sessions == null ? new ArrayList<>() : sessions;
 
-        rebuildOffersCards();
+        rebuildOffersCards(sessionSearchField.getText());
 
         List<Choice> choices = choiceService.getStudentChoices(currentCampaign.getId(), user.getId());
         this.currentChoices = choices == null ? new ArrayList<>() : choices;
@@ -331,7 +331,7 @@ public class StudentDashboardScreen implements AppScreen {
         updateChoiceControlsVisibility();
     }
 
-    private void rebuildOffersCards() {
+    private void rebuildOffersCards(String searchQuery) {
         clearChildren(offersContent);
         offerCards.clear();
         offerCardBySessionId.clear();
@@ -343,7 +343,7 @@ public class StudentDashboardScreen implements AppScreen {
             return;
         }
 
-        String query = sessionSearchField.getText() == null ? "" : sessionSearchField.getText().trim().toLowerCase();
+        String query = (searchQuery == null ? "" : searchQuery).trim().toLowerCase();
         Map<Integer, String> dominantNames = resolveDominantNames();
 
         for (SessionSlot s : currentSessions) {

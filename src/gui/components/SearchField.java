@@ -5,6 +5,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.util.function.Consumer;
 
 import event.UiEvent;
 import main.BaseComp;
@@ -25,7 +26,7 @@ public class SearchField extends BaseComp {
     private Color textColor = new Color(40, 46, 54);
     private Color placeholderColor = new Color(140, 146, 156);
     private Font font = new Font("Dialog", Font.PLAIN, 14);
-    private Runnable onChange = () -> {};
+    private Consumer<String> onChange = s -> {};
 
     public SearchField(int x, int y, int width, int height, String placeholder) {
         super(null);
@@ -133,8 +134,8 @@ public class SearchField extends BaseComp {
         invalidate();
     }
 
-    public void setOnChange(Runnable onChange) {
-        this.onChange = onChange == null ? () -> {} : onChange;
+    public void setOnChange(Consumer<String> onChange) {
+        this.onChange = onChange == null ? s -> {} : onChange;
     }
 
     public void setColors(Color background, Color border, Color focusBorder, Color textColor, Color placeholderColor) {
@@ -158,7 +159,7 @@ public class SearchField extends BaseComp {
 
     private void fireChange() {
         if (onChange != null) {
-            onChange.run();
+            onChange.accept(text);
         }
     }
 }
