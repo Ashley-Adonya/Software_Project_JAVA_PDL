@@ -15,6 +15,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Service de génération de statistiques sur les campagnes d'attribution.
+ * Fournit des informations agrégées sur les taux de remplissage, les inscriptions,
+ * les étudiants non inscrits et l'état général des campagnes.
+ * 
+ * @author PDL Application
+ * @version 1.0
+ */
 public class StatisticsService {
     private final SessionDAO sessionDAO;
     private final RegistrationDAO registrationDAO;

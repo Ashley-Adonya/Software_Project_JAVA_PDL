@@ -1,5 +1,13 @@
 package model;
 
+/**
+ * Représente un créneau temporel de présentation d'une dominante.
+ * Contient les détails de lieu (salle), d'horaire (date, début, fin en minutes),
+ * de capacité d'accueil, et de lien vers la campagne et dominante concernées.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class SessionSlot {
     private int id;
     private int campaignId;

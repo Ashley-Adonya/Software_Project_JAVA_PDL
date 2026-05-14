@@ -1,5 +1,13 @@
 package model;
 
+/**
+ * Représente une campagne d'attribution de sessions de présentation de dominantes.
+ * Une campagne définit les paramètres temporels, le nombre maximum de choix autorisés,
+ * et l'état (PREPARATION, OPEN, CLOSED) du processus d'inscription.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class Campaign {
     private int id;
     private String name;

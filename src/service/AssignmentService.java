@@ -21,6 +21,9 @@ import java.util.List;
  * 1. L'attribution manuelle par les administrateurs pour gérer les exceptions.
  * 2. L'attribution automatique basée sur un algorithme de type Stable Marriage,
  *    garantissant une équité optimale selon les vœux des étudiants.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
  */
 public class AssignmentService {
     private final CampaignDAO campaignDAO;

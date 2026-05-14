@@ -7,6 +7,14 @@ import model.SessionSlot;
 import java.util.Map;
 import java.util.List;
 
+/**
+ * Service de gestion des sessions de présentation des dominantes.
+ * Offre des opérations de création, modification, suppression et recherche de sessions
+ * avec respect des états de campagne et validation des capacités.
+ * 
+ * @author PDL Application
+ * @version 1.0
+ */
 public class SessionService {
     private final SessionDAO sessionDAO;
     private final CampaignDAO campaignDAO;

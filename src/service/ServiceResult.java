@@ -1,5 +1,12 @@
 package service;
 
+/**
+ * Encapsule le résultat d'une opération de service avec un statut de succès et un message descriptif.
+ * Cette classe permet une gestion uniforme des erreurs et des succès dans toute la couche métier.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class ServiceResult {
     private boolean success;
     private String message;

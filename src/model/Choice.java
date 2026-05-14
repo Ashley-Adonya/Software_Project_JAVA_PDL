@@ -1,5 +1,13 @@
 package model;
 
+/**
+ * Représente un choix de session effectué par un étudiant lors d'une campagne d'inscription.
+ * Chaque choix est classé selon un ordre de préférence (rankOrder) de 1 à N.
+ * Les choix sont utilisés par l'algorithme d'attribution pour assigner les étudiants aux sessions.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class Choice {
     private int id;
     private int campaignId;

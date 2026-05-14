@@ -6,6 +6,14 @@ import java.util.List;
 import dao.DominanteDAO;
 import model.Dominante;
 
+/**
+ * Service de gestion des dominantes (domaines d'études proposés).
+ * Offre des opérations de création, modification, suppression et récupération des dominantes
+ * avec validation des données et messages d'erreur détaillés.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class DominanteService {
     private final DominanteDAO dominanteDAO;
 

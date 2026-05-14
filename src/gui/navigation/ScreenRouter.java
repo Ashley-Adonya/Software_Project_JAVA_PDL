@@ -8,6 +8,15 @@ import model.User;
 import service.AuthService;
 import java.util.Locale;
 
+/**
+ * Gestionnaire de navigation centralisé pour l'application.
+ * Assure la transition entre les différents écrans (Login, AdminDashboard, StudentDashboard)
+ * en fonction du rôle de l'utilisateur authentifié.
+ * Gère l'initialisation de la fenêtre principale et les appels de redimensionnement.
+ * 
+ * @author PDL Application
+ * @version 1.0
+ */
 public class ScreenRouter {
     private final BaseWindow window;
     private final AuthService authService;

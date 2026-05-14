@@ -1,5 +1,13 @@
 package model;
 
+/**
+ * Représente un utilisateur du système (administrateur ou étudiant).
+ * Contient les identifiants de connexion, le profil (rôle, promotion), l'état d'activation,
+ * et des informations personnelles (nom complet).
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class User {
     private int id;
     private String login;

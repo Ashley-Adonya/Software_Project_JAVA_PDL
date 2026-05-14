@@ -2,6 +2,14 @@ package model;
 
 import java.awt.Color;
 
+/**
+ * Représente une dominante (domaine d'étude/spécialité) proposée par l'établissement.
+ * Une dominante regroupe plusieurs sessions de présentation et dispose de caractéristiques
+ * visuelles (couleur) et administratives (responsable, description, code).
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class Dominante {
     private int id;
     private String code;

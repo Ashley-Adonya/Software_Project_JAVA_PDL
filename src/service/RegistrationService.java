@@ -13,6 +13,14 @@ import model.User;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Service de gestion des inscriptions d'étudiants aux sessions.
+ * Valide les inscriptions pour détecter les conflits horaires, génère des alternatives,
+ * et assure l'interdépendance entre choix, allocations et inscriptions.
+ * 
+ * @author PDL Application
+ * @version 1.0
+ */
 public class RegistrationService {
     private final RegistrationDAO registrationDAO;
     private final SessionDAO sessionDAO;

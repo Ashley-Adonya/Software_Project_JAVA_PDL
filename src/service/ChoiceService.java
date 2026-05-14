@@ -11,6 +11,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Service de gestion des choix d'étudiants concernant les sessions de présentation.
+ * Permet aux étudiants de créer, modifier et consulter leurs préférences de sessions
+ * avec validation des doublons et contraintes de conflits horaires.
+ * 
+ * @author PDL Application
+ * @version 1.0
+ */
 public class ChoiceService {
     private final ChoiceDAO choiceDAO;
     private final CampaignDAO campaignDAO;

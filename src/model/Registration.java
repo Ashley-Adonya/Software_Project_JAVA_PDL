@@ -1,5 +1,13 @@
 package model;
 
+/**
+ * Représente l'inscription d'un étudiant à une session suite à l'attribution.
+ * Enregistre l'étudiant, la session assignée, le rang du choix original (si applicable),
+ * et le statut de l'inscription (ASSIGNED, MANUAL_ASSIGNED, etc.).
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class Registration {
     private int id;
     private int campaignId;
