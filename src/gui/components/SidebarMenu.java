@@ -47,7 +47,7 @@ public class SidebarMenu extends SurfaceCard {
         this.byKey = new HashMap<>();
         this.darkMode = false;
 
-        this.logo = new CachedImageComp("assets/logo-esigelec.png", 14, 12, 96, 36);
+        this.logo = new CachedImageComp("./assets/logo-esigelec.png", 14, 12, 96, 36);
 
         this.appName = new Label("Esigelec", 56, 10, 120, 22);
         this.appName.setFont(new Font("Dialog", Font.BOLD, 18));
@@ -208,7 +208,7 @@ public class SidebarMenu extends SurfaceCard {
         }
         String[] parts = name.trim().split("\\s+");
         if (parts.length == 1) {
-            return parts[0].substring(0, 1).toUpperCase();
+            return parts[0].length() >= 2 ? parts[0].substring(0, 2).toUpperCase() : parts[0].substring(0, 1).toUpperCase();
         }
         String first = parts[0].isEmpty() ? "" : parts[0].substring(0, 1);
         String last = parts[parts.length - 1].isEmpty() ? "" : parts[parts.length - 1].substring(0, 1);

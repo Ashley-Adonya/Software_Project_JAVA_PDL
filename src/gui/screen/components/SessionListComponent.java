@@ -1,5 +1,6 @@
 package gui.screen.components;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import components.Button;
 import components.Label;
 import components.ScrollView;
 import components.SelectInput;
+import gui.components.SurfaceCard;
 import gui.components.SessionRowAdmin;
 import main.BaseComp;
 import main.BaseWindow;
@@ -37,34 +39,35 @@ public class SessionListComponent {
     private final SessionService sessionService;
     private final DominanteService dominanteService;
 
-    private final BaseComp root;
+    private final SurfaceCard backgroundCard;
     private final ScrollView sessionsScroll;
     private final BaseComp sessionsList;
     private final SelectInput dominanteFilter;
+    private final Button createButton;
 
     private Consumer<SessionSlot> onEditSession = s -> {};
     private Consumer<SessionSlot> onManageSession = s -> {};
     private Runnable onCreateSession = () -> {};
 
     private int currentCampaignId = -1;
+    private boolean darkMode = true;
 
     public SessionListComponent(BaseWindow window, SessionService sessionService, DominanteService dominanteService) {
         this.sessionService = sessionService;
         this.dominanteService = dominanteService;
 
-        this.root = new BaseComp(null);
+        this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.sessionsScroll = new ScrollView(0, 0, 100, 100);
         this.sessionsList = sessionsScroll.getContent();
         this.dominanteFilter = new SelectInput(12, 28, 280, 30);
 
-        Button createBtn = new Button("+ Nouvelle session", 0, 0, 170, 32, () -> onCreateSession.run());
-        createBtn.setBackground(new java.awt.Color(12, 16, 44));
-        root.addChild(createBtn);
-        root.addChild(dominanteFilter);
-        root.addChild(sessionsScroll);
+        this.createButton = new Button("+ Nouvelle session", 0, 0, 170, 32, () -> onCreateSession.run());
+        backgroundCard.addChild(createButton);
+        backgroundCard.addChild(dominanteFilter);
+        backgroundCard.addChild(sessionsScroll);
     }
 
-    public BaseComp getRoot() { return root; }
+    public BaseComp getRoot() { return backgroundCard; }
 
     public void setOnEditSession(Consumer<SessionSlot> cb) { this.onEditSession = cb; }
     public void setOnManageSession(Consumer<SessionSlot> cb) { this.onManageSession = cb; }
@@ -72,11 +75,30 @@ public class SessionListComponent {
 
     public void setActiveCampaignId(int campaignId) { this.currentCampaignId = campaignId; }
 
+    public void setDarkMode(boolean dark) {
+        this.darkMode = dark;
+        applyDarkMode(dark);
+    }
+
+    private void applyDarkMode(boolean dark) {
+        if (dark) {
+            backgroundCard.setBackground(new Color(14, 18, 26));
+            createButton.setBackground(new Color(30, 93, 57));
+            createButton.setForeground(new Color(233, 247, 238));
+        } else {
+            backgroundCard.setBackground(Color.WHITE);
+            createButton.setBackground(new Color(12, 16, 44));
+            createButton.setForeground(Color.WHITE);
+        }
+        backgroundCard.invalidate();
+    }
+
     public void refresh() {
         if (currentCampaignId <= 0) {
             clearChildren(sessionsList);
             Label empty = new Label("Aucune campagne active.", 0, 8, 200, 22);
             empty.setFont(new Font("Dialog", Font.PLAIN, 13));
+            empty.setColor(darkMode ? new Color(151, 166, 194) : new Color(100, 116, 139));
             sessionsList.addChild(empty);
             return;
         }
@@ -101,8 +123,11 @@ public class SessionListComponent {
             if (!"Toutes les dominantes".equals(selected) && !selected.equals(dominanteName)) continue;
 
             SessionRowAdmin row = new SessionRowAdmin(() -> onEditSession.accept(s), () -> sessionService.deleteSession(s.getId()));
+            row.setDarkMode(darkMode);
             row.setBounds(0, y, sessionsScroll.getWidth() - 12, 66);
-            row.setData(dominanteName + " - " + safe(s.getTitle()), " ", 0, new java.awt.Color(107,114,128));
+            int allocated = 0;
+            int fillRate = 0;
+            row.setData(dominanteName + " - " + safe(s.getTitle()), safe(s.getSessionDate()) + " | " + formatMinute(s.getStartMinute()) + "-" + formatMinute(s.getEndMinute()) + " | " + safe(s.getRoom()), fillRate, new Color(107,114,128));
             row.setOnManage(() -> onManageSession.accept(s));
             sessionsList.addChild(row);
             y += 76;
@@ -113,15 +138,18 @@ public class SessionListComponent {
 
     public void onResize(int width, int height) {
         int mainW = width;
-        // basic layout
-        // place create button and filter
-        BaseComp create = root.getChildrenList().get(0);
-        create.setBounds(mainW - 188, 0, 178, 32);
+        backgroundCard.setBounds(0, 0, mainW, height);
+        createButton.setBounds(mainW - 188, 0, 178, 32);
         dominanteFilter.setBounds(12, 28, 280, 30);
         sessionsScroll.setBounds(0, 126, mainW, Math.max(220, height - 126));
     }
 
-    // util
+    private String formatMinute(int minute) {
+        int h = minute / 60;
+        int m = minute % 60;
+        return String.format("%02d:%02d", h, m);
+    }
+
     private void clearChildren(BaseComp parent) { ArrayList<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (BaseComp c : snapshot) parent.removeChild(c); }
     private String safe(String v) { return v == null || v.isBlank() ? "-" : v; }
 }

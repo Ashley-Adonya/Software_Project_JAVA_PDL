@@ -155,7 +155,14 @@ public class CachedImageComp extends BaseComp {
             if (isWebUrl(source)) {
                 return ImageIO.read(URI.create(source).toURL());
             }
-            return ImageIO.read(new File(source));
+            File file = new File(source);
+            if (!file.isAbsolute()) {
+                file = new File(System.getProperty("user.dir"), source);
+            }
+            if (file.exists()) {
+                return ImageIO.read(file);
+            }
+            return null;
         } catch (IOException e) {
             return null;
         }

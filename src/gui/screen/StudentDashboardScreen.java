@@ -168,7 +168,7 @@ public class StudentDashboardScreen implements AppScreen {
         content.addChild(refreshButton);
         content.addChild(sessionSearchField);
         content.addChild(offersScroll);
-        content.addChild(selectionsCard;
+        content.addChild(selectionsCard);
 
         refreshData();
         renderSection();
@@ -313,7 +313,7 @@ public class StudentDashboardScreen implements AppScreen {
         List<SessionSlot> sessions = sessionService.listByCampaign(currentCampaign.getId());
         this.currentSessions = sessions == null ? new ArrayList<>() : sessions;
 
-        rebuildOffersCards(sessionSearchField.getText());
+        rebuildOffersCards();
 
         List<Choice> choices = choiceService.getStudentChoices(currentCampaign.getId(), user.getId());
         this.currentChoices = choices == null ? new ArrayList<>() : choices;
@@ -331,7 +331,8 @@ public class StudentDashboardScreen implements AppScreen {
         updateChoiceControlsVisibility();
     }
 
-    private void rebuildOffersCards(String searchQuery) {
+    private void rebuildOffersCards() {
+        String searchQuery = sessionSearchField.getCurrentText();
         clearChildren(offersContent);
         offerCards.clear();
         offerCardBySessionId.clear();

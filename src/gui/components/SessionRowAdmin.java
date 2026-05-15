@@ -82,4 +82,33 @@ public class SessionRowAdmin extends SurfaceCard {
             manageButton.setOnClick(action);
         }
     }
+
+    public void setDarkMode(boolean dark) {
+        if (dark) {
+            setBackground(new Color(22, 28, 39));
+            setBorderColor(new Color(48, 60, 82));
+            title.setColor(new Color(235, 241, 255));
+            timeRoom.setColor(new Color(151, 166, 194));
+            fill.setColor(new Color(151, 166, 194));
+            editButton.setBackground(new Color(40, 51, 73));
+            editButton.setForeground(new Color(219, 230, 253));
+            manageButton.setBackground(new Color(59, 130, 246));
+            manageButton.setForeground(Color.WHITE);
+            deleteButton.setBackground(new Color(78, 43, 47));
+            deleteButton.setForeground(new Color(253, 209, 209));
+        } else {
+            setBackground(Color.WHITE);
+            setBorderColor(new Color(231, 235, 242));
+            title.setColor(new Color(32, 40, 55));
+            timeRoom.setColor(new Color(112, 122, 138));
+            fill.setColor(new Color(112, 122, 138));
+            editButton.setBackground(new Color(240, 243, 248));
+            editButton.setForeground(new Color(67, 76, 91));
+            manageButton.setBackground(new Color(59, 130, 246));
+            manageButton.setForeground(Color.WHITE);
+            deleteButton.setBackground(new Color(255, 240, 240));
+            deleteButton.setForeground(new Color(196, 61, 61));
+        }
+        invalidate();
+    }
 }

@@ -33,7 +33,7 @@ import service.StatisticsService;
  */
 public class StatsPanelComponent {
     private final StatisticsService statisticsService;
-    private final BaseComp root;
+    private final SurfaceCard root;
     private final ScrollView statsScroll;
     private final BaseComp statsContent;
     private final SurfaceCard heroCard;
@@ -59,10 +59,11 @@ public class StatsPanelComponent {
 
     private Consumer<User> onSelectStudent = u -> {};
     private List<User> cachedUnregisteredStudents = new ArrayList<>();
+    private boolean darkMode = true;
 
     public StatsPanelComponent(BaseWindow window, StatisticsService statisticsService) {
         this.statisticsService = statisticsService;
-        this.root = new BaseComp(null);
+        this.root = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.statsScroll = new ScrollView(0, 0, 100, 100);
         this.statsContent = statsScroll.getContent();
 
@@ -140,6 +141,27 @@ public class StatsPanelComponent {
 
     public BaseComp getRoot() { return root; }
     public void onSelectStudent(Consumer<User> cb) { this.onSelectStudent = cb; }
+    public void setDarkMode(boolean dark) {
+        this.darkMode = dark;
+        if (dark) {
+            root.setBackground(new Color(14, 18, 26));
+            heroCard.setBackground(new Color(18, 24, 35));
+            heroCard.setBorderColor(new Color(52, 63, 92));
+            analysisCard.setBackground(new Color(22, 28, 39));
+            analysisCard.setBorderColor(new Color(48, 60, 82));
+            studentsCard.setBackground(new Color(22, 28, 39));
+            studentsCard.setBorderColor(new Color(48, 60, 82));
+        } else {
+            root.setBackground(new Color(243, 246, 252));
+            heroCard.setBackground(Color.WHITE);
+            heroCard.setBorderColor(new Color(226, 230, 238));
+            analysisCard.setBackground(Color.WHITE);
+            analysisCard.setBorderColor(new Color(226, 230, 238));
+            studentsCard.setBackground(Color.WHITE);
+            studentsCard.setBorderColor(new Color(226, 230, 238));
+        }
+        root.invalidate();
+    }
 
     public void refresh(int campaignId, String promo) {
         if (campaignId <= 0 || promo == null) {
@@ -218,7 +240,8 @@ public class StatsPanelComponent {
      * 
      * @param query Texte de recherche (peut être vide)
      */
-    private void renderFilteredStudents(String query) {
+    private void renderFilteredStudents() {
+        String query = studentSearchField.getCurrentText();
         clearChildren(unregisteredList);
         String lowerQuery = (query == null ? "" : query).toLowerCase();
         

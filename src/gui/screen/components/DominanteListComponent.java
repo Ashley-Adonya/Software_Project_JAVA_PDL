@@ -1,5 +1,6 @@
 package gui.screen.components;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,7 @@ import components.Button;
 import components.Label;
 import components.ScrollView;
 import gui.components.DominanteCardAdmin;
+import gui.components.SurfaceCard;
 import main.BaseComp;
 import main.BaseWindow;
 import model.Dominante;
@@ -29,27 +31,46 @@ import service.DominanteService;
  */
 public class DominanteListComponent {
     private final DominanteService dominanteService;
-    private final BaseComp root;
+    private final SurfaceCard backgroundCard;
     private final ScrollView dominantesScroll;
     private final BaseComp dominantesList;
+    private final Button createButton;
     private Consumer<Dominante> onEdit = d -> {};
     private Runnable onCreate = () -> {};
+    private boolean darkMode = true;
 
     public DominanteListComponent(BaseWindow window, DominanteService dominanteService) {
         this.dominanteService = dominanteService;
-        this.root = new BaseComp(null);
+        this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.dominantesScroll = new ScrollView(0, 0, 100, 100);
         this.dominantesList = dominantesScroll.getContent();
 
-        Button create = new Button("+ Nouvelle dominante", 0, 0, 210, 32, () -> onCreate.run());
-        create.setBackground(new java.awt.Color(12, 16, 44));
-        root.addChild(create);
-        root.addChild(dominantesScroll);
+        this.createButton = new Button("+ Nouvelle dominante", 0, 0, 210, 32, () -> onCreate.run());
+        backgroundCard.addChild(createButton);
+        backgroundCard.addChild(dominantesScroll);
     }
 
-    public BaseComp getRoot() { return root; }
+    public BaseComp getRoot() { return backgroundCard; }
     public void onEdit(Consumer<Dominante> cb) { this.onEdit = cb; }
     public void onCreate(Runnable cb) { this.onCreate = cb; }
+
+    public void setDarkMode(boolean dark) {
+        this.darkMode = dark;
+        applyDarkMode(dark);
+    }
+
+    private void applyDarkMode(boolean dark) {
+        if (dark) {
+            backgroundCard.setBackground(new Color(14, 18, 26));
+            createButton.setBackground(new Color(30, 93, 57));
+            createButton.setForeground(new Color(233, 247, 238));
+        } else {
+            backgroundCard.setBackground(Color.WHITE);
+            createButton.setBackground(new Color(240, 243, 248));
+            createButton.setForeground(new Color(67, 76, 91));
+        }
+        backgroundCard.invalidate();
+    }
 
     public void refresh() {
         List<Dominante> list = dominanteService.listAll();
@@ -61,8 +82,9 @@ public class DominanteListComponent {
         int cardH = 220;
 
         if (list == null || list.isEmpty()) {
-            Label empty = new Label("Aucune dominante. Utilisez le bouton + Nouvelle dominante.", 0, 8, Math.max(260, dominantesScroll.getWidth() - 16), 22);
+            Label empty = new Label("Aucune dominante. Cliquez + Nouvelle dominante.", 0, 8, Math.max(260, dominantesScroll.getWidth() - 16), 22);
             empty.setFont(new Font("Dialog", Font.PLAIN, 13));
+            empty.setColor(darkMode ? new Color(151, 166, 194) : new Color(100, 116, 139));
             dominantesList.addChild(empty);
             dominantesScroll.setContentHeight(Math.max(dominantesScroll.getHeight(), 64));
             return;
@@ -70,10 +92,11 @@ public class DominanteListComponent {
 
         for (Dominante d : list) {
             DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(d), () -> {});
+            card.setDarkMode(darkMode);
             int x = (idx % 2) * (cardW + gap);
             int y = (idx / 2) * (cardH + gap);
             card.setBounds(x, y, cardW, cardH);
-            card.setData(d.getCode(), d.getName(), d.getDescription(), 0, 0, 0, 0, java.awt.Color.GRAY);
+            card.setData(d.getCode(), d.getName(), d.getDescription(), 0, 0, 0, 0, Color.GRAY);
             dominantesList.addChild(card);
             idx++;
         }
@@ -85,8 +108,8 @@ public class DominanteListComponent {
     }
 
     public void onResize(int mainW, int mainH) {
-        BaseComp create = root.getChildrenList().get(0);
-        create.setBounds(mainW - 220, 0, 220, 32);
+        backgroundCard.setBounds(0, 0, mainW, mainH);
+        createButton.setBounds(mainW - 220, 0, 220, 32);
         dominantesScroll.setBounds(0, 44, mainW, Math.max(220, mainH - 44));
     }
 

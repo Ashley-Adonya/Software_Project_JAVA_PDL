@@ -25,6 +25,7 @@ import model.Dominante;
 import model.SessionSlot;
 import model.User;
 import service.CampaignService;
+import service.CacheManager;
 import service.SessionService;
 import service.DominanteService;
 import service.StatisticsService;
@@ -90,6 +91,7 @@ public class AdminDashboardView {
     final BaseComp sectionHost;
 
     private boolean sectionsMounted;
+    private boolean darkMode = true;
 
     private Campaign activeCampaign;
     
@@ -110,7 +112,8 @@ public class AdminDashboardView {
         items.add(new SidebarMenu.Item("campagne", "Campagne"));
         items.add(new SidebarMenu.Item("stats", "Statistiques"));
         this.sidebar = new SidebarMenu("Administration", resolveDisplayName(user), items, "dashboard", this::onSidebarSelect,
-            () -> window.closeTopLayer(), () -> {});
+            () -> window.closeTopLayer(), this::toggleTheme);
+        this.darkMode = true;
 
         this.header = new PageHeader("Tableau de bord", "Vue d'ensemble de la campagne en cours");
         this.refreshButton = new PrimaryButton("Actualiser", 0, 0, 110, 28, this::refreshCurrentSection);
@@ -145,9 +148,65 @@ public class AdminDashboardView {
 
         mountSectionsOnce();
         refreshAllData();
+        applyTheme();
         onResize();
         applyActiveSectionVisibility();
         refreshActiveSection();
+    }
+
+    private void toggleTheme() {
+        darkMode = !darkMode;
+        applyTheme();
+        refreshActiveSection();
+    }
+
+    private void applyTheme() {
+        if (darkMode) {
+            PAGE_BG = new Color(14, 18, 26);
+        } else {
+            PAGE_BG = new Color(243, 246, 252);
+        }
+        sidebar.setDarkMode(darkMode);
+        
+        if (dashboardHeroCard != null) {
+            dashboardHeroCard.setBackground(darkMode ? new Color(18, 24, 35) : Color.WHITE);
+            dashboardHeroCard.setBorderColor(darkMode ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        }
+        if (dashboardKpiCard != null) {
+            dashboardKpiCard.setBackground(darkMode ? new Color(22, 28, 39) : Color.WHITE);
+            dashboardKpiCard.setBorderColor(darkMode ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        }
+        if (dashboardShortcutCard != null) {
+            dashboardShortcutCard.setBackground(darkMode ? new Color(23, 30, 45) : Color.WHITE);
+            dashboardShortcutCard.setBorderColor(darkMode ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        }
+        if (dashboardNoteCard != null) {
+            dashboardNoteCard.setBackground(darkMode ? new Color(23, 30, 45) : Color.WHITE);
+            dashboardNoteCard.setBorderColor(darkMode ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        }
+        
+        dashboardSessionsKpi.setDarkMode(darkMode);
+        dashboardDominantesKpi.setDarkMode(darkMode);
+        dashboardFillKpi.setDarkMode(darkMode);
+        dashboardStudentsKpi.setDarkMode(darkMode);
+        header.setDarkMode(darkMode);
+        
+        dominanteListComponent.setDarkMode(darkMode);
+        sessionListComponent.setDarkMode(darkMode);
+        
+        dashboardGoDominantes.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
+        dashboardGoSessions.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
+        dashboardGoCampagne.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
+        dashboardGoStats.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
+        
+        dashboardSubtitleLabel.setColor(darkMode ? new Color(160, 173, 200) : new Color(26, 34, 49));
+        dashboardStatusLabel.setColor(darkMode ? new Color(125, 140, 168) : new Color(76, 87, 104));
+        
+        BaseComp content = window.getContent();
+        if (content != null) {
+            content.setStyleManager(new style.StyleManager(PAGE_BG, 0, content.getWidth(), content.getHeight(), 0, 0, "absolute"));
+        }
+        window.requestRenderIfNeeded();
     }
 
     public void onResize() {
@@ -252,15 +311,31 @@ public class AdminDashboardView {
 
     private void updateHeaderSubtitle() {
         switch (activeSection) {
-            case DOMINANTES -> header.setSubtitle("Gerez les domaines d'etudes disponibles — Dominantes");
-            case SESSIONS -> header.setSubtitle("Gerez les creneaux de presentation — Sessions");
-            case CAMPAGNE -> header.setSubtitle("Configurez les parametres generaux de la campagne d'inscriptions — Campagne");
-            case STATS -> header.setSubtitle("Statistiques et analyse des inscriptions — Statistiques");
-            default -> header.setSubtitle("Vue d'ensemble de la campagne en cours — Tableau de bord");
+            case DOMINANTES -> {
+                header.setTitle("Dominantes");
+                header.setSubtitle("Gerez les domaines d'etudes disponibles");
+            }
+            case SESSIONS -> {
+                header.setTitle("Sessions");
+                header.setSubtitle("Gerez les creneaux de presentation");
+            }
+            case CAMPAGNE -> {
+                header.setTitle("Campagne");
+                header.setSubtitle("Configurez les parametres generaux");
+            }
+            case STATS -> {
+                header.setTitle("Statistiques");
+                header.setSubtitle("Analyse des inscriptions");
+            }
+            default -> {
+                header.setTitle("Tableau de bord");
+                header.setSubtitle("Vue d'ensemble de la campagne");
+            }
         }
     }
 
-    private void refreshActiveSection() {
+private void refreshActiveSection() {
+        CacheManager.invalidatePrefix("stats:");
         switch (activeSection) {
             case DOMINANTES -> dominanteListComponent.refresh();
             case SESSIONS -> {
@@ -399,10 +474,11 @@ public class AdminDashboardView {
     }
 
     private void refreshDashboardRoot() {
+        CacheManager.invalidatePrefix("stats:");
         if (dashboardSubtitleLabel != null && dashboardStatusLabel != null) {
             if (activeCampaign == null) {
                 dashboardSubtitleLabel.setText("Aucune campagne ouverte actuellement");
-                dashboardStatusLabel.setText("Passez par Campagne pour créer ou mettre à jour les paramètres.");
+                dashboardStatusLabel.setText("Passez par Campagne pour creer ou mettre a jour les parametres.");
                 if (dashboardSessionsKpi != null) {
                     dashboardSessionsKpi.setValue("0");
                     dashboardDominantesKpi.setValue(String.valueOf(dominanteService.listAll().size()));
@@ -410,8 +486,8 @@ public class AdminDashboardView {
                     dashboardStudentsKpi.setValue("0");
                 }
             } else {
-                dashboardSubtitleLabel.setText("Campagne active: " + safe(activeCampaign.getName()) + " • Promo " + safe(activeCampaign.getPromo()));
-                dashboardStatusLabel.setText("Période: " + safe(activeCampaign.getRegistrationDay()) + " • Statut: " + safe(activeCampaign.getStatus()));
+                dashboardSubtitleLabel.setText("Campagne: " + safe(activeCampaign.getName()) + " | Promo " + safe(activeCampaign.getPromo()));
+                dashboardStatusLabel.setText("Periode: " + safe(activeCampaign.getRegistrationDay()) + " | Statut: " + safe(activeCampaign.getStatus()));
                 StatisticsService.StatsSummary stats = statisticsService.getStatsForCampaign(activeCampaign.getId(), activeCampaign.getPromo());
                 if (dashboardSessionsKpi != null) {
                     dashboardSessionsKpi.setValue(String.valueOf(stats.totalSessions));

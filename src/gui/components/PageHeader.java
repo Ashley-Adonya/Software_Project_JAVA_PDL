@@ -39,6 +39,11 @@ public class PageHeader extends BaseComp {
         subtitle.invalidate();
     }
 
+    public void setTitle(String text) {
+        title.setText(text == null ? "" : text);
+        title.invalidate();
+    }
+
     public void setDarkMode(boolean dark) {
         if (dark) {
             title.setColor(new Color(235, 241, 255));

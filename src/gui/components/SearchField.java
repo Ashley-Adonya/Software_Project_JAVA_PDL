@@ -26,7 +26,7 @@ public class SearchField extends BaseComp {
     private Color textColor = new Color(40, 46, 54);
     private Color placeholderColor = new Color(140, 146, 156);
     private Font font = new Font("Dialog", Font.PLAIN, 14);
-    private Consumer<String> onChange = s -> {};
+    private Runnable onChange = () -> {};
 
     public SearchField(int x, int y, int width, int height, String placeholder) {
         super(null);
@@ -34,27 +34,17 @@ public class SearchField extends BaseComp {
         setBounds(x, y, width, height);
         setFocusable(true);
         setCursor(java.awt.Cursor.TEXT_CURSOR);
-
-        getEventManager().register(UiEvent.Type.POINTER_DOWN, (component, event) -> {
-            if (event == null || event.getTarget() != this) {
-                return;
-            }
-            requestFocus();
-            event.stopPropagation();
-            invalidate();
-        });
     }
 
     @Override
-    public boolean onKeyPressed(java.awt.event.KeyEvent e) {
-        if (!isFocused() || e == null) {
+    public boolean onKeyPressed(int keyCode, char keyChar) {
+        if (!isFocused()) {
             return false;
         }
-
-        if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ESCAPE) {
+        if (keyCode == java.awt.event.KeyEvent.VK_ESCAPE) {
             return true;
         }
-        if (e.getKeyCode() == java.awt.event.KeyEvent.VK_BACK_SPACE) {
+        if (keyCode == java.awt.event.KeyEvent.VK_BACK_SPACE) {
             if (!text.isEmpty()) {
                 text = text.substring(0, text.length() - 1);
                 fireChange();
@@ -62,7 +52,7 @@ public class SearchField extends BaseComp {
             invalidate();
             return true;
         }
-        if (e.getKeyCode() == java.awt.event.KeyEvent.VK_DELETE) {
+        if (keyCode == java.awt.event.KeyEvent.VK_DELETE) {
             if (!text.isEmpty()) {
                 text = "";
                 fireChange();
@@ -74,14 +64,10 @@ public class SearchField extends BaseComp {
     }
 
     @Override
-    public boolean onKeyTyped(java.awt.event.KeyEvent e) {
-        if (!isFocused() || e == null) {
+    public boolean onKeyTyped(char keyChar) {
+        if (!isFocused()) {
             return false;
         }
-        if (e.isControlDown() || e.isMetaDown() || e.isAltDown()) {
-            return false;
-        }
-        char keyChar = e.getKeyChar();
         if (Character.isISOControl(keyChar)) {
             return false;
         }
@@ -134,8 +120,8 @@ public class SearchField extends BaseComp {
         invalidate();
     }
 
-    public void setOnChange(Consumer<String> onChange) {
-        this.onChange = onChange == null ? s -> {} : onChange;
+    public void setOnChange(Runnable onChange) {
+        this.onChange = onChange == null ? () -> {} : onChange;
     }
 
     public void setColors(Color background, Color border, Color focusBorder, Color textColor, Color placeholderColor) {
@@ -159,7 +145,11 @@ public class SearchField extends BaseComp {
 
     private void fireChange() {
         if (onChange != null) {
-            onChange.accept(text);
+            onChange.run();
         }
+    }
+
+    public String getCurrentText() {
+        return text;
     }
 }
