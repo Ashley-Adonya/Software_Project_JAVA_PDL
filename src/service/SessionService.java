@@ -91,6 +91,23 @@ public class SessionService {
         return ServiceResult.ok("Session supprimee");
     }
 
+    public boolean updateCapacity(int sessionId, int newCapacity) {
+        if (newCapacity < 0) return false;
+        SessionSlot existing = sessionDAO.findById(sessionId);
+        if (existing == null) return false;
+        Campaign c = campaignDAO.findById(existing.getCampaignId());
+        if (c == null) return false;
+        String status = c.getStatus();
+        if ("PREPARATION".equals(status) || "OPEN".equals(status) || "CLOSED".equals(status) || "PROCESSING".equals(status)) {
+            int allocated = registrationDAO.countAllocatedBySession(c.getId(), sessionId);
+            if (newCapacity < allocated) return false;
+            boolean ok = sessionDAO.updateCapacity(sessionId, newCapacity);
+            if (ok) CacheManager.invalidatePrefix("session:");
+            return ok;
+        }
+        return false;
+    }
+
     public List<SessionSlot> listByCampaign(int campaignId) {
         return CacheManager.getOrLoad("session:campaign:" + campaignId, () -> sessionDAO.findByCampaign(campaignId));
     }
