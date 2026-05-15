@@ -29,6 +29,11 @@ public class DominanteService {
         return new ArrayList<>(dominantes);
     }
 
+    public Dominante findById(int id) {
+        if (id <= 0) return null;
+        return CacheManager.getOrLoad("dominante:id:" + id, () -> dominanteDAO.findById(id));
+    }
+
     public ServiceResult create(Dominante dominante) {
         String validation = validateDominante(dominante);
         if (validation != null) {

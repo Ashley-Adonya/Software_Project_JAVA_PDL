@@ -93,10 +93,11 @@ public class DominanteListComponent {
         for (Dominante d : list) {
             DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(d), () -> {});
             card.setDarkMode(darkMode);
+            Color accent = parseDominanteColor(d.getColor());
             int x = (idx % 2) * (cardW + gap);
             int y = (idx / 2) * (cardH + gap);
             card.setBounds(x, y, cardW, cardH);
-            card.setData(d.getCode(), d.getName(), d.getDescription(), 0, 0, 0, 0, Color.GRAY);
+            card.setData(d.getCode(), d.getName(), d.getDescription(), 0, 0, 0, 0, accent);
             dominantesList.addChild(card);
             idx++;
         }
@@ -114,4 +115,9 @@ public class DominanteListComponent {
     }
 
     private void clearChildren(BaseComp parent) { ArrayList<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (BaseComp c : snapshot) parent.removeChild(c); }
+    private Color parseDominanteColor(String hex) {
+        if (hex == null || hex.isBlank()) return new Color(124, 92, 255);
+        try { return Color.decode(hex.startsWith("#") ? hex : "#" + hex); }
+        catch (Exception e) { return new Color(124, 92, 255); }
+    }
 }

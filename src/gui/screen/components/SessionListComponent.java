@@ -127,7 +127,11 @@ public class SessionListComponent {
             row.setBounds(0, y, sessionsScroll.getWidth() - 12, 66);
             int allocated = 0;
             int fillRate = 0;
-            row.setData(dominanteName + " - " + safe(s.getTitle()), safe(s.getSessionDate()) + " | " + formatMinute(s.getStartMinute()) + "-" + formatMinute(s.getEndMinute()) + " | " + safe(s.getRoom()), fillRate, new Color(107,114,128));
+            Color stripeColor = new Color(124, 92, 255);
+            if (d != null && d.getColor() != null) {
+                try { stripeColor = Color.decode(d.getColor().startsWith("#") ? d.getColor() : "#" + d.getColor()); } catch (Exception ex) { }
+            }
+            row.setData(dominanteName + " - " + safe(s.getTitle()), safe(s.getSessionDate()) + " | " + formatMinute(s.getStartMinute()) + "-" + formatMinute(s.getEndMinute()) + " | " + safe(s.getRoom()), fillRate, stripeColor);
             row.setOnManage(() -> onManageSession.accept(s));
             sessionsList.addChild(row);
             y += 76;

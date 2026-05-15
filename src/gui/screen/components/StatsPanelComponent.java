@@ -190,6 +190,7 @@ public class StatsPanelComponent {
         analysisLine3.setText("Etudiants non inscrits: " + s.unregisteredStudents + " / " + s.totalStudents);
 
         List<User> unregistered = statisticsService.getUnregisteredStudents(campaignId, promo);
+        cachedUnregisteredStudents = new ArrayList<>(unregistered);
         clearChildren(unregisteredList);
         int y = 0;
         for (User u : unregistered) {

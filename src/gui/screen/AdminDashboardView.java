@@ -30,6 +30,13 @@ import service.SessionService;
 import service.DominanteService;
 import service.StatisticsService;
 import gui.components.SurfaceCard;
+import gui.components.ReusableLabeledInput;
+import gui.components.ColorPicker;
+import components.SelectInput;
+import components.TextField;
+import event.UiEvent;
+import service.ServiceResult;
+import components.ScrollView;
 
 /**
  * Vue centralisée du tableau de bord administrateur.
@@ -193,6 +200,7 @@ public class AdminDashboardView {
         
         dominanteListComponent.setDarkMode(darkMode);
         sessionListComponent.setDarkMode(darkMode);
+        statsPanelComponent.setDarkMode(darkMode);
         
         dashboardGoDominantes.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
         dashboardGoSessions.setBackground(darkMode ? new Color(45, 54, 76) : new Color(236, 238, 242));
@@ -365,34 +373,301 @@ private void refreshActiveSection() {
         refreshActiveSection();
     }
 
-    // --- basic modal and callback helpers (minimal implementations) ---
+    // --- modal helpers ---
     private void openCreateSessionModal() {
-        FormModal modal = new FormModal(520, 260, "Nouvelle session", window::closeTopLayer);
-        Label l = new Label("Creation de session (prototype)", 12, 12, 400, 22);
-        Button close = new Button("Fermer", 400, 200, 96, 34, window::closeTopLayer);
-        modal.getBody().addChild(l);
-        modal.getBody().addChild(close);
+        FormModal modal = new FormModal(520, 430, "Nouvelle session", window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        ReusableLabeledInput titleInput = new ReusableLabeledInput("Titre session", "", 16, 8, 240, 62);
+        ReusableLabeledInput dateInput = new ReusableLabeledInput("Date (yyyy-MM-dd)", "", 268, 8, 220, 62);
+        ReusableLabeledInput startInput = new ReusableLabeledInput("Debut (min depuis 00:00)", "510", 16, 80, 180, 62);
+        ReusableLabeledInput endInput = new ReusableLabeledInput("Fin (min depuis 00:00)", "570", 200, 80, 180, 62);
+        ReusableLabeledInput roomInput = new ReusableLabeledInput("Salle", "", 16, 152, 230, 62);
+        ReusableLabeledInput capacityInput = new ReusableLabeledInput("Capacite", "30", 256, 152, 232, 62);
+
+        SelectInput domSelect = new SelectInput(16, 224, 472, 32);
+        List<String> domOptions = new ArrayList<>();
+        for (Dominante d : dominanteService.listAll()) domOptions.add(d.getName());
+        domSelect.setOptions(domOptions);
+
+        Label feedback = new Label("", 16, 264, 472, 18);
+        feedback.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        feedback.setColor(new Color(239, 68, 68));
+
+        Button cancelBtn = new Button("Annuler", 16, 350, 110, 36, window::closeTopLayer);
+        cancelBtn.setBackground(new Color(40, 51, 73));
+        cancelBtn.setForeground(new Color(219, 230, 253));
+
+        Button createBtn = new Button("Creer", 390, 350, 110, 36, () -> {
+            if (activeCampaign == null || activeCampaign.getId() <= 0) {
+                feedback.setText("Aucune campagne active.");
+                return;
+            }
+            List<Dominante> allDom = dominanteService.listAll();
+            String selected = domSelect.getSelectedOption();
+            int domId = -1;
+            for (Dominante d : allDom) if (d.getName().equals(selected)) { domId = d.getId(); break; }
+            if (domId <= 0) { feedback.setText("Selectionnez une dominante."); return; }
+
+            SessionSlot s = new SessionSlot();
+            s.setCampaignId(activeCampaign.getId());
+            s.setDominanteId(domId);
+            s.setTitle(titleInput.getValue());
+            s.setSessionDate(dateInput.getValue());
+            try { s.setStartMinute(Integer.parseInt(startInput.getValue())); } catch (Exception e) { s.setStartMinute(0); }
+            try { s.setEndMinute(Integer.parseInt(endInput.getValue())); } catch (Exception e) { s.setEndMinute(0); }
+            s.setRoom(roomInput.getValue());
+            try { s.setCapacity(Integer.parseInt(capacityInput.getValue())); } catch (Exception e) { s.setCapacity(0); }
+
+            ServiceResult r = sessionService.createSession(s);
+            if (r.isSuccess()) {
+                window.closeTopLayer();
+                refreshActiveSection();
+            } else {
+                feedback.setText(r.getMessage());
+            }
+        });
+        createBtn.setBackground(new Color(30, 93, 57));
+        createBtn.setForeground(new Color(233, 247, 238));
+
+        body.addChild(titleInput);
+        body.addChild(dateInput);
+        body.addChild(startInput);
+        body.addChild(endInput);
+        body.addChild(roomInput);
+        body.addChild(capacityInput);
+        body.addChild(domSelect);
+        body.addChild(feedback);
+        body.addChild(cancelBtn);
+        body.addChild(createBtn);
+
         window.openModal(modal);
     }
 
     private void openEditSessionModal(SessionSlot s) {
         if (s == null) return;
-        FormModal modal = new FormModal(520, 260, "Modifier session", window::closeTopLayer);
-        Label l = new Label("Edition session: " + safe(s.getTitle()), 12, 12, 400, 22);
-        Button close = new Button("Fermer", 400, 200, 96, 34, window::closeTopLayer);
-        modal.getBody().addChild(l);
-        modal.getBody().addChild(close);
+        FormModal modal = new FormModal(520, 430, "Modifier session", window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        ReusableLabeledInput titleInput = new ReusableLabeledInput("Titre session", safe(s.getTitle()), 16, 8, 240, 62);
+        ReusableLabeledInput dateInput = new ReusableLabeledInput("Date (yyyy-MM-dd)", safe(s.getSessionDate()), 268, 8, 220, 62);
+        ReusableLabeledInput startInput = new ReusableLabeledInput("Debut (min)", String.valueOf(s.getStartMinute()), 16, 80, 180, 62);
+        ReusableLabeledInput endInput = new ReusableLabeledInput("Fin (min)", String.valueOf(s.getEndMinute()), 200, 80, 180, 62);
+        ReusableLabeledInput roomInput = new ReusableLabeledInput("Salle", safe(s.getRoom()), 16, 152, 230, 62);
+        ReusableLabeledInput capacityInput = new ReusableLabeledInput("Capacite", String.valueOf(s.getCapacity()), 256, 152, 232, 62);
+
+        SelectInput domSelect = new SelectInput(16, 224, 472, 32);
+        List<String> domOptions = new ArrayList<>();
+        Dominante selectedDom = null;
+        for (Dominante d : dominanteService.listAll()) {
+            domOptions.add(d.getName());
+            if (d.getId() == s.getDominanteId()) selectedDom = d;
+        }
+        domSelect.setOptions(domOptions);
+        if (selectedDom != null) domSelect.setSelectedOption(selectedDom.getName());
+
+        Label feedback = new Label("", 16, 264, 472, 18);
+        feedback.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        feedback.setColor(new Color(239, 68, 68));
+
+        Button cancelBtn = new Button("Annuler", 16, 350, 110, 36, window::closeTopLayer);
+        cancelBtn.setBackground(new Color(40, 51, 73));
+        cancelBtn.setForeground(new Color(219, 230, 253));
+
+        Button saveBtn = new Button("Enregistrer", 390, 350, 110, 36, () -> {
+            List<Dominante> allDom = dominanteService.listAll();
+            String sel = domSelect.getSelectedOption();
+            int domId = -1;
+            for (Dominante d : allDom) if (d.getName().equals(sel)) { domId = d.getId(); break; }
+            if (domId <= 0) { feedback.setText("Selectionnez une dominante."); return; }
+
+            s.setTitle(titleInput.getValue());
+            s.setSessionDate(dateInput.getValue());
+            try { s.setStartMinute(Integer.parseInt(startInput.getValue())); } catch (Exception e) { }
+            try { s.setEndMinute(Integer.parseInt(endInput.getValue())); } catch (Exception e) { }
+            s.setRoom(roomInput.getValue());
+            try { s.setCapacity(Integer.parseInt(capacityInput.getValue())); } catch (Exception e) { }
+
+            ServiceResult r = sessionService.updateSession(s);
+            if (r.isSuccess()) {
+                window.closeTopLayer();
+                refreshActiveSection();
+            } else {
+                feedback.setText(r.getMessage());
+            }
+        });
+        saveBtn.setBackground(new Color(30, 93, 57));
+        saveBtn.setForeground(new Color(233, 247, 238));
+
+        body.addChild(titleInput);
+        body.addChild(dateInput);
+        body.addChild(startInput);
+        body.addChild(endInput);
+        body.addChild(roomInput);
+        body.addChild(capacityInput);
+        body.addChild(domSelect);
+        body.addChild(feedback);
+        body.addChild(cancelBtn);
+        body.addChild(saveBtn);
+
         window.openModal(modal);
     }
 
     private void openManageSessionModal(SessionSlot s, int allocated) {
         if (s == null) return;
-        FormModal modal = new FormModal(620, 360, "Gerer session", window::closeTopLayer);
-        Label l = new Label("Gerer: " + safe(s.getTitle()), 12, 12, 520, 22);
-        Button close = new Button("Fermer", 500, 300, 96, 34, window::closeTopLayer);
-        modal.getBody().addChild(l);
-        modal.getBody().addChild(close);
+        FormModal modal = new FormModal(620, 440, "Gerer session", window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        Dominante d = dominanteService.findById(s.getDominanteId());
+        String domName = d != null ? d.getName() : "Dominante #" + s.getDominanteId();
+
+        Label sessionTitle = new Label(domName + " - " + safe(s.getTitle()), 16, 12, 580, 22);
+        sessionTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 16));
+        sessionTitle.setColor(new Color(235, 241, 255));
+
+        Label sessionDetails = new Label(
+            "Date: " + safe(s.getSessionDate()) + "  |  Horaire: " + formatMinute(s.getStartMinute()) + "-" + formatMinute(s.getEndMinute()) + "  |  Salle: " + safe(s.getRoom()),
+            16, 42, 580, 18);
+        sessionDetails.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        sessionDetails.setColor(new Color(151, 166, 194));
+
+        Label fillLabel = new Label("Capacite: " + allocated + " / " + s.getCapacity(), 16, 68, 300, 18);
+        fillLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        fillLabel.setColor(new Color(161, 175, 202));
+
+        Label studentsLabel = new Label("Etudiants inscrits", 16, 100, 200, 18);
+        studentsLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 13));
+        studentsLabel.setColor(new Color(210, 219, 237));
+
+        ScrollView scroll = new ScrollView(8, 122, 596, 240);
+
+        Button closeBtn = new Button("Fermer", 256, 372, 110, 36, window::closeTopLayer);
+        closeBtn.setBackground(new Color(40, 51, 73));
+        closeBtn.setForeground(new Color(219, 230, 253));
+
+        body.addChild(sessionTitle);
+        body.addChild(sessionDetails);
+        body.addChild(fillLabel);
+        body.addChild(studentsLabel);
+        body.addChild(scroll);
+        body.addChild(closeBtn);
+
         window.openModal(modal);
+    }
+
+    private void openCreateDominanteModal() {
+        FormModal modal = new FormModal(520, 480, "Nouvelle dominante", window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        ReusableLabeledInput codeInput = new ReusableLabeledInput("Code (ex: IA)", "", 16, 8, 220, 62);
+        ReusableLabeledInput nameInput = new ReusableLabeledInput("Nom de la dominante", "", 16, 80, 472, 62);
+        ReusableLabeledInput descInput = new ReusableLabeledInput("Description", "", 16, 152, 472, 62);
+        ReusableLabeledInput respInput = new ReusableLabeledInput("Responsable", "", 16, 224, 472, 62);
+
+        ColorPicker colorPicker = new ColorPicker(16, 294, 200, 76, null);
+
+        Label feedback = new Label("", 16, 378, 472, 18);
+        feedback.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        feedback.setColor(new Color(239, 68, 68));
+
+        Button cancelBtn = new Button("Annuler", 16, 404, 110, 36, window::closeTopLayer);
+        cancelBtn.setBackground(new Color(40, 51, 73));
+        cancelBtn.setForeground(new Color(219, 230, 253));
+
+        Button createBtn = new Button("Creer", 390, 404, 110, 36, () -> {
+            String code = codeInput.getValue().trim().toUpperCase();
+            String name = nameInput.getValue().trim();
+            if (code.isEmpty() || name.isEmpty()) { feedback.setText("Code et nom obligatoires."); return; }
+
+            Dominante d = new Dominante();
+            d.setCode(code);
+            d.setName(name);
+            d.setDescription(descInput.getValue().trim());
+            d.setResponsibleName(respInput.getValue().trim());
+            d.setColor(String.format("#%02x%02x%02x", colorPicker.getSelectedColor().getRed(), colorPicker.getSelectedColor().getGreen(), colorPicker.getSelectedColor().getBlue()));
+            d.setActive(true);
+
+            ServiceResult r = dominanteService.create(d);
+            if (r.isSuccess()) {
+                window.closeTopLayer();
+                refreshActiveSection();
+            } else {
+                feedback.setText(r.getMessage());
+            }
+        });
+        createBtn.setBackground(new Color(30, 93, 57));
+        createBtn.setForeground(new Color(233, 247, 238));
+
+        body.addChild(codeInput);
+        body.addChild(nameInput);
+        body.addChild(descInput);
+        body.addChild(respInput);
+        body.addChild(colorPicker);
+        body.addChild(feedback);
+        body.addChild(cancelBtn);
+        body.addChild(createBtn);
+
+        window.openModal(modal);
+    }
+
+    private void openEditDominanteModal(Dominante d) {
+        if (d == null) return;
+        FormModal modal = new FormModal(520, 480, "Modifier dominante", window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        ReusableLabeledInput codeInput = new ReusableLabeledInput("Code", d.getCode(), 16, 8, 220, 62);
+        ReusableLabeledInput nameInput = new ReusableLabeledInput("Nom de la dominante", d.getName(), 16, 80, 472, 62);
+        ReusableLabeledInput descInput = new ReusableLabeledInput("Description", d.getDescription(), 16, 152, 472, 62);
+        ReusableLabeledInput respInput = new ReusableLabeledInput("Responsable", d.getResponsibleName(), 16, 224, 472, 62);
+
+        ColorPicker colorPicker = new ColorPicker(16, 294, 200, 76, d.getColor());
+
+        Label feedback = new Label("", 16, 378, 472, 18);
+        feedback.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        feedback.setColor(new Color(239, 68, 68));
+
+        Button cancelBtn = new Button("Annuler", 16, 404, 110, 36, window::closeTopLayer);
+        cancelBtn.setBackground(new Color(40, 51, 73));
+        cancelBtn.setForeground(new Color(219, 230, 253));
+
+        Button saveBtn = new Button("Enregistrer", 390, 404, 110, 36, () -> {
+            String code = codeInput.getValue().trim().toUpperCase();
+            String name = nameInput.getValue().trim();
+            if (code.isEmpty() || name.isEmpty()) { feedback.setText("Code et nom obligatoires."); return; }
+
+            d.setCode(code);
+            d.setName(name);
+            d.setDescription(descInput.getValue().trim());
+            d.setResponsibleName(respInput.getValue().trim());
+            d.setColor(String.format("#%02x%02x%02x", colorPicker.getSelectedColor().getRed(), colorPicker.getSelectedColor().getGreen(), colorPicker.getSelectedColor().getBlue()));
+
+            ServiceResult r = dominanteService.update(d);
+            if (r.isSuccess()) {
+                window.closeTopLayer();
+                refreshActiveSection();
+            } else {
+                feedback.setText(r.getMessage());
+            }
+        });
+        saveBtn.setBackground(new Color(30, 93, 57));
+        saveBtn.setForeground(new Color(233, 247, 238));
+
+        body.addChild(codeInput);
+        body.addChild(nameInput);
+        body.addChild(descInput);
+        body.addChild(respInput);
+        body.addChild(colorPicker);
+        body.addChild(feedback);
+        body.addChild(cancelBtn);
+        body.addChild(saveBtn);
+
+        window.openModal(modal);
+    }
+
+    private String formatMinute(int minute) {
+        int h = minute / 60;
+        int m = minute % 60;
+        return String.format("%02d:%02d", h, m);
     }
 
     private void saveCampaignFromComponent(Campaign c) {
@@ -406,10 +681,6 @@ private void refreshActiveSection() {
             campaignFormComponent.setFeedback("Echec creation de la campagne.");
         }
     }
-
-    private void openCreateDominanteModal() { FormModal modal = new FormModal(520, 260, "Nouvelle dominante", window::closeTopLayer); modal.getBody().addChild(new Label("Formulaire dominante (prototype)", 12,12,480,22)); modal.getBody().addChild(new Button("Fermer", 400,200,96,34,window::closeTopLayer)); window.openModal(modal); }
-
-    private void openEditDominanteModal(Dominante d) { if (d == null) return; FormModal modal = new FormModal(520,260,"Modifier dominante", window::closeTopLayer); modal.getBody().addChild(new Label("Edition dominante: "+safe(d.getName()),12,12,480,22)); modal.getBody().addChild(new Button("Fermer",400,200,96,34,window::closeTopLayer)); window.openModal(modal); }
 
     private BaseComp createDashboardRoot() {
         BaseComp root = new BaseComp(null);
@@ -431,7 +702,7 @@ private void refreshActiveSection() {
         dashboardSessionsKpi = new KpiCard("Sessions", "0", "Total", new Color(59, 130, 246));
         dashboardDominantesKpi = new KpiCard("Dominantes", "0", "Actives", new Color(168, 85, 247));
         dashboardFillKpi = new KpiCard("Remplissage", "0%", "Moyenne", new Color(245, 158, 11));
-        dashboardStudentsKpi = new KpiCard("Etudiants", "0", "Non inscrits", new Color(239, 68, 68));
+        dashboardStudentsKpi = new KpiCard("Inscrits", "0", "Total", new Color(34, 197, 94));
         dashboardKpiCard.addChild(dashboardSessionsKpi);
         dashboardKpiCard.addChild(dashboardDominantesKpi);
         dashboardKpiCard.addChild(dashboardFillKpi);
@@ -493,7 +764,7 @@ private void refreshActiveSection() {
                     dashboardSessionsKpi.setValue(String.valueOf(stats.totalSessions));
                     dashboardDominantesKpi.setValue(String.valueOf(dominanteService.listAll().size()));
                     dashboardFillKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
-                    dashboardStudentsKpi.setValue(String.valueOf(stats.unregisteredStudents));
+                    dashboardStudentsKpi.setValue(String.valueOf(stats.registeredStudents));
                 }
             }
         }
