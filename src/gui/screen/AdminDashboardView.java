@@ -96,6 +96,18 @@ public class AdminDashboardView {
     private final StatisticsService statisticsService;
     private final RegistrationService registrationService;
     private final RegistrationDAO registrationDAO;
+    private AdminDashboardAlertManager alertManager;
+
+// Getters for services and state
+    public Campaign getActiveCampaign() { return activeCampaign; }
+    public User getUser() { return user; }
+    public BaseWindow getWindow() { return window; }
+    public CampaignService getCampaignService() { return campaignService; }
+    public SessionService getSessionService() { return sessionService; }
+    public DominanteService getDominanteService() { return dominanteService; }
+    public RegistrationService getRegistrationService() { return registrationService; }
+    public RegistrationDAO getRegistrationDAO() { return registrationDAO; }
+    public StatisticsService getStatisticsService() { return statisticsService; }
 
     // UI fields (kept package-private for delegator access if needed)
     final SidebarMenu sidebar;
