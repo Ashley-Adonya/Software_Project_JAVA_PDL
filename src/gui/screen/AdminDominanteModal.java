@@ -61,7 +61,8 @@ public class AdminDominanteModal {
         int colorY = 188;
         Label colorLabel = labeledLabel("Couleur", 16, colorY);
         Color initColor = edit && existing.getColor() != null ? parseColor(existing.getColor()) : new Color(59, 130, 246);
-        ColorPicker colorPicker = new ColorPicker(16, colorY + 18, 200, 76, initColor);
+        String hexColor = edit && existing.getColor() != null ? existing.getColor() : "#3B82F6";
+        ColorPicker colorPicker = new ColorPicker(16, colorY + 18, 200, 76, hexColor);
         
         int btnY = 324;
         Label feedback = feedbackLabel(16, btnY);

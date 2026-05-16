@@ -77,8 +77,6 @@ public class AdminStudentRegistrationModal {
     
     private void refreshSessionList(int campaignId, int studentId, String dominanteName, 
                                      ScrollView sessionScroll, Label feedbackLabel, FormModal modal) {
-    private void refreshSessionList(int campaignId, int studentId, String dominanteName, 
-                                     ScrollView sessionScroll, Label feedbackLabel, FormModal modal) {
         BaseComp list = sessionScroll.getContent();
         clearChildren(list);
         Dominante selectedDom = findDominante(dominanteName);
@@ -110,7 +108,8 @@ public class AdminStudentRegistrationModal {
     }
     
     private SurfaceCard createSessionCard(SessionSlot s, RegistrationService.ConflictResult check, int slotAllocated,
-                                          int y, int cardWidth, Label feedbackLabel) {
+                                          int y, int cardWidth, int campaignId, int studentId, String dominanteName,
+                                          ScrollView sessionScroll, Label feedbackLabel, FormModal modal) {
         SurfaceCard card = new SurfaceCard(0, y, cardWidth, 60,
             check.hasConflict ? new Color(255, 240, 240) : (check.sessionFull ? new Color(255, 245, 230) : new Color(240, 248, 255)),
             new Color(226, 230, 238), 6);
@@ -144,16 +143,35 @@ public class AdminStudentRegistrationModal {
         
         if (!check.hasConflict && !check.sessionFull) {
             Button regBtn = new Button("Inscrire", cardWidth - 100, 16, 76, 26, () -> {
-                ServiceResult r = view.getRegistrationService().registerStudent(view.getActiveCampaign().getId(), 
-                    view.getUser() != null ? view.getUser().getId() : 0, s.getId(), true);
-                int studentId = 0;
-                // We need the student ID from the outer context - it's passed in via the parent method
-                feedbackLabel.setText("Inscrit avec succes!");
-                feedbackLabel.setColor(new Color(34, 197, 94));
+                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, s.getId(), false);
+                if (r.isSuccess()) {
+                    feedbackLabel.setText("Inscrit avec succes!");
+                    feedbackLabel.setColor(new Color(34, 197, 94));
+                    refreshSessionList(campaignId, studentId, dominanteName, sessionScroll, feedbackLabel, modal);
+                } else {
+                    feedbackLabel.setText(r.getMessage());
+                    feedbackLabel.setColor(new Color(239, 68, 68));
+                }
             });
             regBtn.setBackground(new Color(30, 93, 57));
             regBtn.setForeground(new Color(233, 247, 238));
             card.addChild(regBtn);
+        } else if (check.sessionFull && check.alternatives != null && !check.alternatives.isEmpty()) {
+            Button altBtn = new Button("Alternative", cardWidth - 110, 16, 90, 26, () -> {
+                RegistrationService.AlternativeSession alt = check.alternatives.get(0);
+                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, alt.sessionId, false);
+                if (r.isSuccess()) {
+                    feedbackLabel.setText("Inscrit a: " + alt.title);
+                    feedbackLabel.setColor(new Color(34, 197, 94));
+                    refreshSessionList(campaignId, studentId, dominanteName, sessionScroll, feedbackLabel, modal);
+                } else {
+                    feedbackLabel.setText(r.getMessage());
+                    feedbackLabel.setColor(new Color(239, 68, 68));
+                }
+            });
+            altBtn.setBackground(new Color(245, 158, 11));
+            altBtn.setForeground(Color.WHITE);
+            card.addChild(altBtn);
         }
         return card;
     }
