@@ -102,6 +102,6 @@ public class ChoiceService {
     public List<RegistrationService.AlternativeSession> getAlternativeSessions(int campaignId, int studentId, int sessionId) {
         model.SessionSlot session = sessionDAO.findById(sessionId);
         if (session == null) return new java.util.ArrayList<>();
-        return registrationService.findAlternativeSessions(campaignId, studentId, session);
+        return registrationService.findAlternativeSessionsForDom(campaignId, studentId, session.getDominanteId(), sessionId);
     }
 }

@@ -107,7 +107,7 @@ public class RegistrationService {
 
         int allocated = registrationDAO.countAllocatedBySession(campaignId, sessionId);
         if (allocated >= targetSession.getCapacity()) {
-            List<AlternativeSession> alternatives = findAlternativeSessions(campaignId, studentId, targetSession);
+            List<AlternativeSession> alternatives = findAlternativeSessionsForDom(campaignId, studentId, targetSession.getDominanteId(), sessionId);
             return ConflictResult.sessionFull(alternatives);
         }
 
@@ -177,13 +177,13 @@ public class RegistrationService {
         return ServiceResult.fail("Aucune session disponible");
     }
 
-    public List<AlternativeSession> findAlternativeSessions(int campaignId, int studentId, SessionSlot excludeSession) {
+    public List<AlternativeSession> findAlternativeSessionsForDom(int campaignId, int studentId, int dominanteId, int excludeSessionId) {
         List<AlternativeSession> alternatives = new ArrayList<>();
-        
+
         List<SessionSlot> allSessions = sessionDAO.findByCampaign(campaignId);
         List<Registration> studentRegs = registrationDAO.findByStudentAndCampaign(campaignId, studentId);
         List<SessionSlot> studentSessions = new ArrayList<>();
-        
+
         for (Registration reg : studentRegs) {
             if ("ALLOCATED".equals(reg.getStatus()) || "WAITLIST".equals(reg.getStatus())) {
                 SessionSlot s = findSessionById(allSessions, reg.getSessionId());
@@ -198,8 +198,8 @@ public class RegistrationService {
         }
 
         for (SessionSlot session : allSessions) {
-            if (session.getId() == excludeSession.getId()) continue;
-            if (session.getDominanteId() != excludeSession.getDominanteId()) continue;
+            if (session.getId() == excludeSessionId) continue;
+            if (session.getDominanteId() != dominanteId) continue;
 
             boolean hasConflict = false;
             for (SessionSlot existing : studentSessions) {
@@ -223,12 +223,12 @@ public class RegistrationService {
             alt.endTime = formatMinute(session.getEndMinute());
             alt.room = session.getRoom();
             alt.availablePlaces = session.getCapacity() - allocated;
-            
+
             alternatives.add(alt);
         }
 
         alternatives.sort((a, b) -> Integer.compare(b.availablePlaces, a.availablePlaces));
-        
+
         return alternatives;
     }
 

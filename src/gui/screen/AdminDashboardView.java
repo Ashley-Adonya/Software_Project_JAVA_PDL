@@ -29,9 +29,12 @@ import service.CacheManager;
 import service.SessionService;
 import service.DominanteService;
 import service.StatisticsService;
+import service.RegistrationService;
+import gui.components.AlertContainer;
 import gui.components.SurfaceCard;
 import gui.components.ReusableLabeledInput;
 import gui.components.ColorPicker;
+import dao.RegistrationDAO;
 import components.SelectInput;
 import components.TextField;
 import event.UiEvent;
@@ -69,6 +72,7 @@ public class AdminDashboardView {
     private SurfaceCard dashboardNoteCard;
     private SurfaceCard dashboardKpiCard;
     private SurfaceCard dashboardShortcutCard;
+    private AlertContainer dashboardAlertContainer;
     private Label dashboardSubtitleLabel;
     private Label dashboardStatusLabel;
     private KpiCard dashboardSessionsKpi;
@@ -90,6 +94,8 @@ public class AdminDashboardView {
     private final SessionService sessionService;
     private final DominanteService dominanteService;
     private final StatisticsService statisticsService;
+    private final RegistrationService registrationService;
+    private final RegistrationDAO registrationDAO;
 
     // UI fields (kept package-private for delegator access if needed)
     final SidebarMenu sidebar;
@@ -99,6 +105,7 @@ public class AdminDashboardView {
 
     private boolean sectionsMounted;
     private boolean darkMode = true;
+    private int mainW = 320;
 
     private Campaign activeCampaign;
     
@@ -111,6 +118,8 @@ public class AdminDashboardView {
         this.sessionService = new SessionService();
         this.dominanteService = new DominanteService();
         this.statisticsService = new StatisticsService();
+        this.registrationService = new RegistrationService();
+        this.registrationDAO = new RegistrationDAO();
 
         ArrayList<SidebarMenu.Item> items = new ArrayList<>();
         items.add(new SidebarMenu.Item("dashboard", "Tableau de bord"));
@@ -226,7 +235,7 @@ public class AdminDashboardView {
         sidebar.setBounds(0, 0, sideW, h);
 
         int mainX = sideW + 16;
-        int mainW = Math.max(320, w - mainX - 16);
+        this.mainW = Math.max(320, w - mainX - 16);
 
         header.setBounds(mainX, 18, mainW, 52);
         refreshButton.setBounds(mainX + mainW - 110, 24, 110, 28);
@@ -292,6 +301,37 @@ public class AdminDashboardView {
     LocalDate campaignDateForSort(Campaign campaign) {
         if (campaign == null || campaign.getRegistrationDay() == null || campaign.getRegistrationDay().isBlank()) return LocalDate.MIN;
         try { return LocalDate.parse(campaign.getRegistrationDay(), FR_DATE); } catch (Exception ignored) { return LocalDate.MIN; }
+    }
+
+    private List<AlertContainer.AlertItem> generateDashboardAlerts() {
+        List<AlertContainer.AlertItem> alerts = new ArrayList<>();
+        if (activeCampaign == null) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.WARNING, "Aucune campagne active", "Creez une campagne pour commencer."));
+            return alerts;
+        }
+
+        String status = activeCampaign.getStatus();
+        if ("PREPARATION".equals(status)) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.INFO, "Phase PREPARATION", "Les inscriptions ne sont pas encore ouvertes."));
+        } else if ("OPEN".equals(status)) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.INFO, "Phase OPEN", "Les inscriptions sont ouvertes aux etudiants."));
+        } else if ("CLOSED".equals(status)) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.WARNING, "Phase CLOSED", "Les inscriptions sont fermees."));
+        } else if ("PROCESSING".equals(status)) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.WARNING, "Phase PROCESSING", "Traitement des allocations en cours."));
+        }
+
+        StatisticsService.StatsSummary stats = statisticsService.getStatsForCampaign(activeCampaign.getId(), activeCampaign.getPromo());
+        if (stats.unregisteredStudents > 0) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.WARNING, stats.unregisteredStudents + " etudiants non inscrits", "Consultez la page Statistiques."));
+        }
+        if (stats.averageFillRate >= 95) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.ERROR, "Sessions quasi completes", "Taux de remplissage: " + String.format("%.0f%%", stats.averageFillRate)));
+        }
+        if (stats.totalSessions == 0) {
+            alerts.add(new AlertContainer.AlertItem(AlertContainer.AlertType.WARNING, "Aucune session definie", "Ajoutez des sessions dans la section Sessions."));
+        }
+        return alerts;
     }
 
     
@@ -538,21 +578,21 @@ private void refreshActiveSection() {
         sessionDetails.setColor(new Color(100, 116, 139));
 
         int editCapY = 58;
+        Label feedbackLabel = new Label("", 244, editCapY + 18, 200, 16);
+        feedbackLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
+        feedbackLabel.setColor(new Color(239, 68, 68));
+
         ReusableLabeledInput capInput = new ReusableLabeledInput("Modifier capacite", String.valueOf(s.getCapacity()), 16, editCapY, 160, 52);
         Button updateCapBtn = new Button("OK", 184, editCapY + 14, 50, 28, () -> {
             try {
                 int newCap = Integer.parseInt(capInput.getValue());
                 boolean ok = sessionService.updateCapacity(s.getId(), newCap);
-                if (ok) { s.setCapacity(newCap); capInput.setValue(String.valueOf(newCap)); feedbackLabel.setText("Capacite mise a jour."); refreshActiveSection(); }
-                else { feedbackLabel.setText("Modification interdite."); }
-            } catch (Exception ex) { feedbackLabel.setText("Capacite invalide."); }
+                if (ok) { s.setCapacity(newCap); capInput.setValue(String.valueOf(newCap)); feedbackLabel.setText("Capacite mise a jour."); feedbackLabel.setColor(new Color(34, 197, 94)); refreshActiveSection(); }
+                else { feedbackLabel.setText("Modification interdite."); feedbackLabel.setColor(new Color(239, 68, 68)); }
+            } catch (Exception ex) { feedbackLabel.setText("Capacite invalide."); feedbackLabel.setColor(new Color(239, 68, 68)); }
         });
         updateCapBtn.setBackground(new Color(59, 130, 246));
         updateCapBtn.setForeground(Color.WHITE);
-
-        Label feedbackLabel = new Label("", 244, editCapY + 18, 200, 16);
-        feedbackLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
-        feedbackLabel.setColor(new Color(239, 68, 68));
 
         Label studentsTitle = new Label("Etudiants inscrits (" + allocated + ")", 16, 120, 200, 16);
         studentsTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
@@ -717,6 +757,158 @@ private void refreshActiveSection() {
         }
     }
 
+    private void openManageStudentModal(User student) {
+        if (student == null || activeCampaign == null) return;
+        FormModal modal = new FormModal(640, 500, "Inscrire - " + safe(student.getFullName()), window::closeTopLayer);
+        BaseComp body = modal.getBody();
+
+        Label studentLabel = new Label("Etudiant: " + safe(student.getFullName()) + " (" + safe(student.getLogin()) + ")", 16, 10, 600, 20);
+        studentLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 13));
+        studentLabel.setColor(new Color(27, 39, 56));
+
+        Label domLabel = new Label("Selectionnez une dominante", 16, 42, 200, 16);
+        domLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 11));
+        domLabel.setColor(new Color(100, 110, 130));
+
+        SelectInput domSelect = new SelectInput(16, 60, 280, 30);
+        List<String> domOptions = new ArrayList<>();
+        for (Dominante d : dominanteService.listAll()) domOptions.add(d.getName());
+        domSelect.setOptions(domOptions);
+
+        int sessionY = 100;
+        Label sessionLabel = new Label("Sessions disponibles", 16, sessionY, 200, 16);
+        sessionLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 11));
+        sessionLabel.setColor(new Color(100, 110, 130));
+
+        ScrollView sessionScroll = new ScrollView(8, sessionY + 18, 616, 220);
+
+        Label feedbackLabel = new Label("", 16, 348, 400, 16);
+        feedbackLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
+        feedbackLabel.setColor(new Color(239, 68, 68));
+
+        Button closeBtn = new Button("Fermer", 252, 430, 110, 30, window::closeTopLayer);
+        closeBtn.setBackground(new Color(40, 51, 73));
+        closeBtn.setForeground(new Color(219, 230, 253));
+
+        domSelect.setOnChange(selected -> {
+            refreshSessionListForDominante(student, selected, sessionScroll, feedbackLabel, modal);
+        });
+
+        body.addChild(studentLabel);
+        body.addChild(domLabel);
+        body.addChild(domSelect);
+        body.addChild(sessionLabel);
+        body.addChild(sessionScroll);
+        body.addChild(feedbackLabel);
+        body.addChild(closeBtn);
+
+        window.openModal(modal);
+    }
+
+    private void refreshSessionListForDominante(User student, String dominanteName, ScrollView sessionScroll, Label feedbackLabel, FormModal modal) {
+        BaseComp list = sessionScroll.getContent();
+        clearChildren(list);
+
+        Dominante selectedDom = null;
+        for (Dominante d : dominanteService.listAll()) {
+            if (d.getName().equals(dominanteName)) { selectedDom = d; break; }
+        }
+
+        if (selectedDom == null) return;
+
+        List<SessionSlot> sessions = sessionService.listByCampaign(activeCampaign.getId());
+        int y = 0;
+        boolean foundAvailable = false;
+
+        for (SessionSlot s : sessions) {
+            if (s.getDominanteId() != selectedDom.getId()) continue;
+
+            RegistrationService.ConflictResult check = registrationService.checkRegistration(activeCampaign.getId(), student.getId(), s.getId());
+            int allocated = registrationService.getStudentRegistrations(activeCampaign.getId(), student.getId()).size();
+            int slotAllocated = registrationDAO.countAllocatedBySession(activeCampaign.getId(), s.getId());
+
+            SurfaceCard sessionCard = new SurfaceCard(0, y, sessionScroll.getWidth() - 16, 60,
+                check.hasConflict ? new Color(255, 240, 240) : (check.sessionFull ? new Color(255, 245, 230) : new Color(240, 248, 255)),
+                new Color(226, 230, 238), 6);
+
+            String statusText;
+            java.awt.Color statusColor;
+            if (check.hasConflict) {
+                statusText = "Conflit: " + check.conflictMessage;
+                statusColor = new Color(196, 61, 61);
+            } else if (check.sessionFull) {
+                statusText = "Session complete (" + slotAllocated + "/" + s.getCapacity() + ")";
+                statusColor = new Color(180, 120, 20);
+            } else {
+                statusText = (s.getCapacity() - slotAllocated) + " places";
+                statusColor = new Color(34, 197, 94);
+                foundAvailable = true;
+            }
+
+            Label sTitle = new Label(safe(s.getTitle()), 10, 8, 300, 18);
+            sTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
+            sTitle.setColor(new Color(27, 39, 56));
+
+            Label sInfo = new Label(safe(s.getSessionDate()) + " | " + formatMinute(s.getStartMinute()) + "-" + formatMinute(s.getEndMinute()) + " | " + safe(s.getRoom()), 10, 28, 400, 16);
+            sInfo.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
+            sInfo.setColor(new Color(100, 116, 139));
+
+            Label sStatus = new Label(statusText, 10, 44, 300, 14);
+            sStatus.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 10));
+            sStatus.setColor(statusColor);
+
+            sessionCard.addChild(sTitle);
+            sessionCard.addChild(sInfo);
+            sessionCard.addChild(sStatus);
+
+            if (!check.hasConflict && !check.sessionFull) {
+                Button regBtn = new Button("Inscrire", sessionScroll.getWidth() - 100, 16, 76, 26, () -> {
+                    ServiceResult r = registrationService.registerStudent(activeCampaign.getId(), student.getId(), s.getId(), true);
+                    if (r.isSuccess()) {
+                        feedbackLabel.setText("Inscrit avec succes!");
+                        feedbackLabel.setColor(new Color(34, 197, 94));
+                        refreshSessionListForDominante(student, dominanteName, sessionScroll, feedbackLabel, modal);
+                    } else {
+                        feedbackLabel.setText(r.getMessage());
+                        feedbackLabel.setColor(new Color(239, 68, 68));
+                    }
+                });
+                regBtn.setBackground(new Color(30, 93, 57));
+                regBtn.setForeground(new Color(233, 247, 238));
+                sessionCard.addChild(regBtn);
+            } else if (check.sessionFull && check.alternatives != null && !check.alternatives.isEmpty()) {
+                Button altBtn = new Button("Alternative", sessionScroll.getWidth() - 110, 16, 90, 26, () -> {
+                    RegistrationService.AlternativeSession alt = check.alternatives.get(0);
+                    ServiceResult r = registrationService.registerStudent(activeCampaign.getId(), student.getId(), alt.sessionId, true);
+                    if (r.isSuccess()) {
+                        feedbackLabel.setText("Inscrit a: " + alt.title);
+                        feedbackLabel.setColor(new Color(34, 197, 94));
+                        refreshSessionListForDominante(student, dominanteName, sessionScroll, feedbackLabel, modal);
+                    } else {
+                        feedbackLabel.setText(r.getMessage());
+                        feedbackLabel.setColor(new Color(239, 68, 68));
+                    }
+                });
+                altBtn.setBackground(new Color(245, 158, 11));
+                altBtn.setForeground(Color.WHITE);
+                sessionCard.addChild(altBtn);
+            }
+
+            list.addChild(sessionCard);
+            y += 66;
+        }
+
+        if (y == 0) {
+            Label noSessions = new Label("Aucune session pour cette dominante", 0, 0, 300, 24);
+            noSessions.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+            noSessions.setColor(new Color(100, 116, 139));
+            list.addChild(noSessions);
+            y = 24;
+        }
+
+        sessionScroll.setContentHeight(Math.max(sessionScroll.getHeight(), y + 10));
+    }
+
     private BaseComp createDashboardRoot() {
         BaseComp root = new BaseComp(null);
 
@@ -767,6 +959,9 @@ private void refreshActiveSection() {
         noteText.setColor(new Color(145, 158, 184));
         dashboardNoteCard.addChild(noteText);
 
+        dashboardAlertContainer = new AlertContainer();
+        dashboardAlertContainer.setDarkMode(true);
+
         dashboardHeroCard.addChild(title);
         dashboardHeroCard.addChild(dashboardSubtitleLabel);
         dashboardHeroCard.addChild(dashboardStatusLabel);
@@ -774,12 +969,13 @@ private void refreshActiveSection() {
         root.addChild(dashboardHeroCard);
         root.addChild(dashboardKpiCard);
         root.addChild(dashboardShortcutCard);
+        root.addChild(dashboardAlertContainer.getRoot());
         root.addChild(dashboardNoteCard);
         root.setVisible(false);
         return root;
     }
 
-    private void refreshDashboardRoot() {
+private void refreshDashboardRoot() {
         CacheManager.invalidatePrefix("stats:");
         if (dashboardSubtitleLabel != null && dashboardStatusLabel != null) {
             if (activeCampaign == null) {
@@ -801,6 +997,11 @@ private void refreshActiveSection() {
                     dashboardFillKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
                     dashboardStudentsKpi.setValue(String.valueOf(stats.registeredStudents));
                 }
+            }
+
+            if (dashboardAlertContainer != null) {
+                List<AlertContainer.AlertItem> alerts = generateDashboardAlerts();
+                dashboardAlertContainer.setAlerts(alerts);
             }
         }
     }

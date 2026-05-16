@@ -157,7 +157,28 @@ public class CachedImageComp extends BaseComp {
             }
             File file = new File(source);
             if (!file.isAbsolute()) {
-                file = new File(System.getProperty("user.dir"), source);
+                String userDir = System.getProperty("user.dir");
+                if (userDir != null) {
+                    File resolved = new File(userDir, source);
+                    if (resolved.exists()) {
+                        return ImageIO.read(resolved);
+                    }
+                    File assetsDir = new File(userDir, "assets");
+                    File assetFile = new File(assetsDir, source);
+                    if (assetFile.exists()) {
+                        return ImageIO.read(assetFile);
+                    }
+                    String parent = System.getProperty("user.dir");
+                    File binDir = new File(parent, "bin");
+                    File binFile = new File(binDir, source);
+                    if (binFile.exists()) {
+                        return ImageIO.read(binFile);
+                    }
+                }
+                if (file.exists()) {
+                    return ImageIO.read(file);
+                }
+                return null;
             }
             if (file.exists()) {
                 return ImageIO.read(file);

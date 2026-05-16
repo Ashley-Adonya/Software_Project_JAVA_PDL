@@ -247,6 +247,26 @@ public class SessionDAO {
         return 0;
     }
 
+    public boolean updateCapacity(int sessionId, int capacity) {
+        String sql = "UPDATE sessions SET capacity = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
+        Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+            conn = ConnectionDAO.getConnection();
+            if (conn == null) return false;
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, capacity);
+            ps.setInt(2, sessionId);
+            return ps.executeUpdate() == 1;
+        } catch (Exception e) {
+            System.err.println("SessionDAO.updateCapacity: " + e.getMessage());
+        } finally {
+            close(ps);
+            close(conn);
+        }
+        return false;
+    }
+
     public Map<Integer, Integer> countBySessionForCampaign(int campaignId) {
         String sql = "SELECT session_id, COUNT(*) c FROM registrations WHERE campaign_id = ? AND status = 'ALLOCATED' GROUP BY session_id";
         Map<Integer, Integer> result = new HashMap<Integer, Integer>();

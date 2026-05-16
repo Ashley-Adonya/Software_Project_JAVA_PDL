@@ -1,6 +1,7 @@
 package service;
 
 import dao.CampaignDAO;
+import dao.RegistrationDAO;
 import dao.SessionDAO;
 import model.Campaign;
 import model.SessionSlot;
@@ -18,10 +19,12 @@ import java.util.List;
 public class SessionService {
     private final SessionDAO sessionDAO;
     private final CampaignDAO campaignDAO;
+    private final RegistrationDAO registrationDAO;
 
     public SessionService() {
         this.sessionDAO = new SessionDAO();
         this.campaignDAO = new CampaignDAO();
+        this.registrationDAO = new RegistrationDAO();
     }
 
     public ServiceResult createSession(SessionSlot session) {
