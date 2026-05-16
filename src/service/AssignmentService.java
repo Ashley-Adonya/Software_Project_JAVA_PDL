@@ -10,6 +10,7 @@ import model.Choice;
 import model.Registration;
 import model.SessionSlot;
 import model.User;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -92,8 +93,9 @@ public class AssignmentService {
     /**
      * Exécute l'algorithme d'attribution automatique pour une campagne.
      * 
-     * Nous avons implémenté une approche "Stable Marriage" (Galey-Shapley simplifiée) 
+     * Approche "Stable Marriage" (Gale-Shapley simplifiée) 
      * qui priorise les vœux des étudiants tout en respectant les capacités des sessions.
+     * Les attributions manuelles (sourceChoiceRank = null) sont préservées.
      * 
      * @param campaignId L'identifiant de la campagne à traiter
      * @return ServiceResult avec le bilan de l'attribution
@@ -112,18 +114,41 @@ public class AssignmentService {
             return ServiceResult.fail("Impossible de passer en PROCESSING");
         }
 
-        // Nettoyage des attributions existantes (SAUF manuelles si nécessaire, ici on repart à zéro)
+        List<Registration> existing = registrationDAO.findByCampaignAndStatus(campaignId, "ALLOCATED");
+        List<Integer> manuallyAllocatedStudentIds = new ArrayList<>();
+        for (Registration reg : existing) {
+            if (reg.getSourceChoiceRank() == null) {
+                manuallyAllocatedStudentIds.add(reg.getStudentId());
+            }
+        }
+
         registrationDAO.deleteByCampaign(campaignId);
 
+        int manualCount = 0;
+        for (Registration reg : existing) {
+            if (reg.getSourceChoiceRank() == null) {
+                Registration copy = new Registration();
+                copy.setCampaignId(reg.getCampaignId());
+                copy.setStudentId(reg.getStudentId());
+                copy.setSessionId(reg.getSessionId());
+                copy.setSourceChoiceRank(null);
+                copy.setStatus("ALLOCATED");
+                if (registrationDAO.create(copy) > 0) {
+                    manualCount++;
+                }
+            }
+        }
+
         List<User> students = userDAO.findStudentsByPromo(campaign.getPromo());
-        // On mélange les étudiants pour éviter un biais systématique si aucun autre critère n'est utilisé
         Collections.shuffle(students);
 
         int allocatedCount = 0;
         int waitlistCount = 0;
 
-        // Phase 1: Attribution des meilleurs choix possibles
         for (User student : students) {
+            if (manuallyAllocatedStudentIds.contains(student.getId())) {
+                continue;
+            }
             List<Choice> choices = choiceDAO.findByStudentAndCampaign(campaignId, student.getId());
             choices.sort(Comparator.comparingInt(Choice::getRankOrder));
 
@@ -141,13 +166,11 @@ public class AssignmentService {
                     if (registrationDAO.create(reg) > 0) {
                         allocatedCount++;
                         allocated = true;
-                        break; // Trouvé un vœu possible, on passe à l'étudiant suivant
+                        break;
                     }
                 }
             }
 
-            // Si aucune session demandée n'est disponible, l'étudiant est mis en attente globale
-            // ou sur son premier choix par défaut (selon la politique souhaitée)
             if (!allocated && !choices.isEmpty()) {
                 Choice firstChoice = choices.get(0);
                 Registration reg = new Registration();
@@ -163,7 +186,11 @@ public class AssignmentService {
         }
 
         campaignDAO.updateStatus(campaignId, "VALIDATED");
-        return ServiceResult.ok("Attribution automatique terminée : " + allocatedCount + " étudiants affectés, " + waitlistCount + " en liste d'attente.");
+        String msg = "Attribution automatique terminee : " + allocatedCount + " etudiants affectes, " + waitlistCount + " en liste d'attente";
+        if (manualCount > 0) {
+            msg += " (" + manualCount + " manuelles preservees)";
+        }
+        return ServiceResult.ok(msg);
     }
 
     private int sessionCapacity(int sessionId) {

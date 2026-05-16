@@ -155,33 +155,43 @@ public class CachedImageComp extends BaseComp {
             if (isWebUrl(source)) {
                 return ImageIO.read(URI.create(source).toURL());
             }
-            File file = new File(source);
-            if (!file.isAbsolute()) {
-                String userDir = System.getProperty("user.dir");
+            String path = source.trim();
+            if (path.startsWith("./")) path = path.substring(2);
+            if (path.startsWith(".\\")) path = path.substring(2);
+            path = path.replace('/', File.separatorChar).replace('\\', File.separatorChar);
+
+            File direct = new File(path);
+            if (direct.isAbsolute() && direct.exists() && direct.isFile()) {
+                return ImageIO.read(direct);
+            }
+
+            String userDir = System.getProperty("user.dir");
+            File absolute = new File(path);
+            if (!absolute.isAbsolute()) {
                 if (userDir != null) {
-                    File resolved = new File(userDir, source);
-                    if (resolved.exists()) {
+                    File resolved = new File(userDir, path);
+                    if (resolved.exists() && resolved.isFile()) {
                         return ImageIO.read(resolved);
                     }
-                    File assetsDir = new File(userDir, "assets");
-                    File assetFile = new File(assetsDir, source);
-                    if (assetFile.exists()) {
-                        return ImageIO.read(assetFile);
+                    String simpleName = path;
+                    int sepIdx = path.lastIndexOf(File.separatorChar);
+                    if (sepIdx >= 0) {
+                        simpleName = path.substring(sepIdx + 1);
                     }
-                    String parent = System.getProperty("user.dir");
-                    File binDir = new File(parent, "bin");
-                    File binFile = new File(binDir, source);
-                    if (binFile.exists()) {
-                        return ImageIO.read(binFile);
+                    File dirFile = new File(new File(userDir, "assets"), simpleName);
+                    if (dirFile.exists() && dirFile.isFile()) {
+                        return ImageIO.read(dirFile);
+                    }
+                    dirFile = new File(new File(userDir, "bin"), simpleName);
+                    if (dirFile.exists() && dirFile.isFile()) {
+                        return ImageIO.read(dirFile);
+                    }
+                    if (direct.exists() && direct.isFile()) {
+                        return ImageIO.read(direct);
                     }
                 }
-                if (file.exists()) {
-                    return ImageIO.read(file);
-                }
-                return null;
-            }
-            if (file.exists()) {
-                return ImageIO.read(file);
+            } else if (absolute.exists() && absolute.isFile()) {
+                return ImageIO.read(absolute);
             }
             return null;
         } catch (IOException e) {
