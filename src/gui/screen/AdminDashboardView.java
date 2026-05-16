@@ -161,4 +161,5 @@ public class AdminDashboardView {
     public dao.RegistrationDAO getRegistrationDAO() { return registrationDAO; }
     private String displayName() { return user == null ? "" : (user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getLogin() == null ? "" : user.getLogin()); }
     private void clearChildren(BaseComp p) { for (BaseComp c : new ArrayList<>(p.getChildrenList())) p.removeChild(c); }
+    void refreshActiveSection() { sectionManager.refreshActiveSection(); }
 }

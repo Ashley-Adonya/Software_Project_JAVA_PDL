@@ -106,7 +106,7 @@ public class AdminSessionModal {
             try { slot.setCapacity(Integer.parseInt(capacityInput.getValue())); } catch (Exception e) {}
             
             ServiceResult r = edit ? sessService.updateSession(slot) : sessService.createSession(slot);
-            if (r.isSuccess()) { view.getWindow().closeTopLayer(); view.refreshActiveSection(); }
+            if (r.isSuccess()) { view.getWindow().closeTopLayer(); view.refreshSessions(); }
             else feedback.setText(r.getMessage());
         });
         
