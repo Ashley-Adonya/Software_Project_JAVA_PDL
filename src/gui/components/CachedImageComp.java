@@ -148,55 +148,28 @@ public class CachedImageComp extends BaseComp {
     }
 
     private Image loadImage(String source) {
-        if (source == null || source.isBlank()) {
-            return null;
+        if (source == null || source.isBlank()) return null;
+        if (source.startsWith("http://") || source.startsWith("https://")) {
+            try { return javax.imageio.ImageIO.read(new java.net.URL(source)); } catch (Exception e) { return null; }
         }
-        try {
-            if (isWebUrl(source)) {
-                return ImageIO.read(URI.create(source).toURL());
+        String path = source.trim();
+        if (path.startsWith("./") || path.startsWith(".\\")) path = path.substring(2);
+        path = path.replace('\\', '/');
+        String userDir = System.getProperty("user.dir");
+        File[] candidates = {
+            new File(userDir, path),
+            new File(new File(userDir), "assets/" + new File(path).getName()),
+            new File(new File(userDir), "bin/" + new File(path).getName()),
+            new File(userDir + File.separator + "assets", new File(path).getName()),
+            new File(path),
+            new File("./" + path)
+        };
+        for (File f : candidates) {
+            if (f.exists() && f.isFile() && f.canRead()) {
+                try { return javax.imageio.ImageIO.read(f); } catch (Exception ignored) {}
             }
-            String path = source.trim();
-            if (path.startsWith("./")) path = path.substring(2);
-            if (path.startsWith(".\\")) path = path.substring(2);
-            path = path.replace('/', File.separatorChar).replace('\\', File.separatorChar);
-
-            File direct = new File(path);
-            if (direct.isAbsolute() && direct.exists() && direct.isFile()) {
-                return ImageIO.read(direct);
-            }
-
-            String userDir = System.getProperty("user.dir");
-            File absolute = new File(path);
-            if (!absolute.isAbsolute()) {
-                if (userDir != null) {
-                    File resolved = new File(userDir, path);
-                    if (resolved.exists() && resolved.isFile()) {
-                        return ImageIO.read(resolved);
-                    }
-                    String simpleName = path;
-                    int sepIdx = path.lastIndexOf(File.separatorChar);
-                    if (sepIdx >= 0) {
-                        simpleName = path.substring(sepIdx + 1);
-                    }
-                    File dirFile = new File(new File(userDir, "assets"), simpleName);
-                    if (dirFile.exists() && dirFile.isFile()) {
-                        return ImageIO.read(dirFile);
-                    }
-                    dirFile = new File(new File(userDir, "bin"), simpleName);
-                    if (dirFile.exists() && dirFile.isFile()) {
-                        return ImageIO.read(dirFile);
-                    }
-                    if (direct.exists() && direct.isFile()) {
-                        return ImageIO.read(direct);
-                    }
-                }
-            } else if (absolute.exists() && absolute.isFile()) {
-                return ImageIO.read(absolute);
-            }
-            return null;
-        } catch (IOException e) {
-            return null;
         }
+        return null;
     }
 
     private boolean isWebUrl(String source) {

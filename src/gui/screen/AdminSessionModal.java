@@ -84,11 +84,7 @@ public class AdminSessionModal {
         
         Button cancelBtn = cancelButton(296, btnY, view.getWindow()::closeTopLayer);
         String btnText = edit ? "Enregistrer" : "Creer";
-        Button actionBtn = createButton(404, btnY, btnText);
-        actionBtn.setBackground(new Color(30, 93, 57));
-        actionBtn.setForeground(new Color(233, 247, 238));
-        
-        actionBtn.setOnClick(() -> {
+        Button actionBtn = new Button(btnText, 404, btnY, 100, 30, () -> {
             if (view.getActiveCampaign() == null || view.getActiveCampaign().getId() <= 0) {
                 feedback.setText("Aucune campagne active."); return;
             }
@@ -109,6 +105,8 @@ public class AdminSessionModal {
             if (r.isSuccess()) { view.getWindow().closeTopLayer(); view.refreshSessions(); }
             else feedback.setText(r.getMessage());
         });
+        actionBtn.setBackground(new Color(30, 93, 57));
+        actionBtn.setForeground(new Color(233, 247, 238));
         
         body.addChild(titleInput); body.addChild(dateInput);
         body.addChild(startInput); body.addChild(endInput);
@@ -143,10 +141,6 @@ public class AdminSessionModal {
         b.setBackground(new Color(40, 51, 73));
         b.setForeground(new Color(219, 230, 253));
         return b;
-    }
-    
-    private Button createButton(int x, int y, String text) {
-        return new Button(text, x, y, 100, 30, null);
     }
     
     private String safe(String value) { return value == null || value.isBlank() ? "-" : value; }

@@ -69,10 +69,7 @@ public class AdminDominanteModal {
         
         Button cancelBtn = styledBtn("Annuler", 296, btnY, 100, 30,
             new Color(40, 51, 73), view.getWindow()::closeTopLayer);
-        Button actionBtn = styledBtn(edit ? "Enregistrer" : "Creer", 404, btnY, 100, 30,
-            new Color(30, 93, 57), null);
-        
-        actionBtn.setOnClick(() -> {
+        Button actionBtn = new Button(edit ? "Enregistrer" : "Creer", 404, btnY, 100, 30, () -> {
             String code = codeInput.getValue().trim().toUpperCase();
             String name = nameInput.getValue().trim();
             if (code.isEmpty() || name.isEmpty()) { feedback.setText("Code et nom obligatoires."); return; }
@@ -90,6 +87,8 @@ public class AdminDominanteModal {
             if (r.isSuccess()) { view.getWindow().closeTopLayer(); view.refreshActiveSection(); }
             else feedback.setText(r.getMessage());
         });
+        actionBtn.setBackground(new Color(30, 93, 57));
+        actionBtn.setForeground(new Color(233, 247, 238));
         
         body.addChild(codeInput); body.addChild(nameInput);
         body.addChild(descInput); body.addChild(respInput);

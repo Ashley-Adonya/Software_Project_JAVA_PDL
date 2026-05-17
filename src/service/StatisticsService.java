@@ -47,6 +47,17 @@ public class StatisticsService {
         public int totalStudents;
         public int registeredStudents;
         public int unregisteredStudents;
+        public List<SessionDetail> sessionDetails = new ArrayList<>();
+    }
+
+    public static class SessionDetail {
+        public int sessionId;
+        public String sessionTitle;
+        public String dominanteName;
+        public String timeSlot;
+        public int capacity;
+        public int allocated;
+        public boolean isFull;
     }
 
     public static class StudentWithSessions {
@@ -69,44 +80,40 @@ public class StatisticsService {
     public StatsSummary getStatsForCampaign(int campaignId, String promo) {
         return CacheManager.getOrLoad("stats:summary:" + campaignId + ":" + safe(promo), () -> {
             StatsSummary stats = new StatsSummary();
-
             List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
             stats.totalSessions = sessions.size();
-
             List<Integer> registeredStudentIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
-
-            int totalCapacity = 0;
-            int totalAllocated = 0;
-            int completeSessions = 0;
-
+            int totalCapacity = 0, totalAllocated = 0, completeSessions = 0;
             Map<Integer, Integer> allocationsBySession = sessionDAO.countBySessionForCampaign(campaignId);
+            List<Dominante> dominantes = dominanteDAO.findAll();
+            Map<Integer, Dominante> domMap = new HashMap<>();
+            for (Dominante d : dominantes) domMap.put(d.getId(), d);
 
             for (SessionSlot session : sessions) {
+                int alloc = allocationsBySession.getOrDefault(session.getId(), 0);
                 totalCapacity += session.getCapacity();
-                Integer allocated = allocationsBySession.get(session.getId());
-                int alloc = allocated != null ? allocated : 0;
                 totalAllocated += alloc;
+                if (alloc >= session.getCapacity()) completeSessions++;
 
-                if (alloc >= session.getCapacity()) {
-                    completeSessions++;
-                }
+                SessionDetail detail = new SessionDetail();
+                detail.sessionId = session.getId();
+                detail.sessionTitle = session.getTitle();
+                detail.capacity = session.getCapacity();
+                detail.allocated = alloc;
+                detail.isFull = alloc >= session.getCapacity();
+                Dominante dom = domMap.get(session.getDominanteId());
+                detail.dominanteName = dom != null ? dom.getName() : "#" + session.getDominanteId();
+                detail.timeSlot = formatMinute(session.getStartMinute()) + " - " + formatMinute(session.getEndMinute());
+                stats.sessionDetails.add(detail);
             }
-
             stats.completeSessions = completeSessions;
             stats.totalCapacity = totalCapacity;
             stats.totalAllocated = totalAllocated;
-
-            if (totalCapacity > 0) {
-                stats.averageFillRate = (totalAllocated * 100.0) / totalCapacity;
-            } else {
-                stats.averageFillRate = 0;
-            }
-
+            stats.averageFillRate = totalCapacity > 0 ? (totalAllocated * 100.0) / totalCapacity : 0;
             List<User> allStudents = userDAO.findAllStudentsByPromo(promo);
             stats.totalStudents = allStudents.size();
             stats.registeredStudents = registeredStudentIds.size();
-            stats.unregisteredStudents = stats.totalStudents - registeredStudentIds.size();
-
+            stats.unregisteredStudents = stats.totalStudents - stats.registeredStudents;
             return stats;
         });
     }
@@ -116,6 +123,107 @@ public class StatisticsService {
             List<Integer> registeredIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
             return userDAO.findStudentsWithoutRegistrationInCampaign(promo, campaignId, registeredIds);
         });
+    }
+
+    public List<User> getRegisteredStudents(int campaignId, String promo) {
+        return CacheManager.getOrLoad("stats:registered:" + campaignId + ":" + safe(promo), () -> {
+            List<User> all = userDAO.findAllStudentsByPromo(promo);
+            List<Integer> registeredIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
+            List<User> result = new ArrayList<>();
+            for (User u : all) if (registeredIds.contains(u.getId())) result.add(u);
+            return result;
+        });
+    }
+
+    /**
+     * Retourne les étudiants inscrits dans une session spécifique.
+     */
+    public List<User> getStudentsInSession(int campaignId, int sessionId) {
+        return CacheManager.getOrLoad("stats:session:" + campaignId + ":" + sessionId + ":students", () -> {
+            List<Registration> regs = registrationDAO.findBySessionAndStatus(campaignId, sessionId, "ALLOCATED");
+            List<User> result = new ArrayList<>();
+            for (Registration r : regs) {
+                User u = userDAO.findById(r.getStudentId());
+                if (u != null) result.add(u);
+            }
+            return result;
+        });
+    }
+
+    /**
+     * Retourne les sessions d'un étudiant dans une campagne.
+     */
+    public List<SessionDetail> getSessionsForStudent(int campaignId, int studentId) {
+        return CacheManager.getOrLoad("stats:student:" + campaignId + ":" + studentId + ":sessions", () -> {
+            List<Registration> regs = registrationDAO.findByStudentAndCampaign(campaignId, studentId);
+            List<SessionDetail> result = new ArrayList<>();
+            List<Dominante> dominantes = dominanteDAO.findAll();
+            Map<Integer, Dominante> domMap = new HashMap<>();
+            for (Dominante d : dominantes) domMap.put(d.getId(), d);
+            List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
+            Map<Integer, SessionSlot> sessMap = new HashMap<>();
+            for (SessionSlot s : sessions) sessMap.put(s.getId(), s);
+            for (Registration r : regs) {
+                SessionSlot s = sessMap.get(r.getSessionId());
+                if (s != null) {
+                    SessionDetail detail = new SessionDetail();
+                    detail.sessionId = s.getId();
+                    detail.sessionTitle = s.getTitle();
+                    detail.capacity = s.getCapacity();
+                    detail.allocated = registrationDAO.countAllocatedBySession(campaignId, s.getId());
+                    detail.isFull = detail.allocated >= detail.capacity;
+                    Dominante dom = domMap.get(s.getDominanteId());
+                    detail.dominanteName = dom != null ? dom.getName() : "#" + s.getDominanteId();
+                    detail.timeSlot = formatMinute(s.getStartMinute()) + " - " + formatMinute(s.getEndMinute());
+                    result.add(detail);
+                }
+            }
+            return result;
+        });
+    }
+
+    /**
+     * Retourne les étudiants d'une dominante (via ses sessions).
+     */
+    public List<User> getStudentsByDominante(int campaignId, int dominanteId) {
+        return CacheManager.getOrLoad("stats:dom:" + campaignId + ":" + dominanteId + ":students", () -> {
+            List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
+            List<Integer> sessionIds = new ArrayList<>();
+            for (SessionSlot s : sessions) if (s.getDominanteId() == dominanteId) sessionIds.add(s.getId());
+            List<User> result = new ArrayList<>();
+            for (int sessId : sessionIds) {
+                List<User> students = getStudentsInSession(campaignId, sessId);
+                for (User u : students) if (!result.contains(u)) result.add(u);
+            }
+            return result;
+        });
+    }
+
+    /**
+     * Retourne les sessions d'une dominante.
+     */
+    public List<SessionDetail> getSessionsByDominante(int campaignId, int dominanteId) {
+        List<SessionDetail> result = new ArrayList<>();
+        List<SessionSlot> sessions = sessionDAO.findByCampaign(campaignId);
+        List<Dominante> dominantes = dominanteDAO.findAll();
+        Map<Integer, Dominante> domMap = new HashMap<>();
+        for (Dominante d : dominantes) domMap.put(d.getId(), d);
+        Map<Integer, Integer> allocations = sessionDAO.countBySessionForCampaign(campaignId);
+        for (SessionSlot s : sessions) {
+            if (s.getDominanteId() == dominanteId) {
+                SessionDetail detail = new SessionDetail();
+                detail.sessionId = s.getId();
+                detail.sessionTitle = s.getTitle();
+                detail.capacity = s.getCapacity();
+                detail.allocated = allocations.getOrDefault(s.getId(), 0);
+                detail.isFull = detail.allocated >= detail.capacity;
+                Dominante dom = domMap.get(dominanteId);
+                detail.dominanteName = dom != null ? dom.getName() : "#" + dominanteId;
+                detail.timeSlot = formatMinute(s.getStartMinute()) + " - " + formatMinute(s.getEndMinute());
+                result.add(detail);
+            }
+        }
+        return result;
     }
 
     public StudentWithSessions getStudentSessions(int campaignId, int studentId) {

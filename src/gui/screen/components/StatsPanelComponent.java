@@ -1,279 +1,194 @@
 package gui.screen.components;
 
 import java.awt.Color;
-import java.awt.Font;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-
-import components.Button;
-import components.Label;
-import components.ScrollView;
-import gui.components.KpiCard;
-import gui.components.SearchField;
-import gui.components.SurfaceCard;
 import main.BaseComp;
 import main.BaseWindow;
 import model.User;
 import service.StatisticsService;
+import gui.components.SurfaceCard;
+import gui.components.PrimaryButton;
+import components.Label;
+import components.ScrollView;
 
 /**
- * Composant d'affichage des statistiques et indicateurs de campagne.
- * Présente des KPIs (sessions totales, completes, taux de remplissage)
- * et liste des étudiants non inscrits.
- * 
- * Responsabilités :
- * - Rendu des cartes KPI avec valeurs calculées
- * - Affichage de la liste des étudiants sans inscription
- * - Callback de sélection d'étudiant
- * - Gestion du redimensionnement pour adaptation responsive
- * 
- * @author Sado Adonya & VIEYRA Kolawole
- * @version 1.0
+ * Panneau principal des statistiques.
+ * Structure verticale dans un scroll : Hero > Tabs > KPI > Filtres > Contenu
+ * Contenu change selon l'onglet actif (Vue/Etudiants/Sessions/Détail)
  */
 public class StatsPanelComponent {
-    private final StatisticsService statisticsService;
+    private enum ViewMode { OVERVIEW, STUDENT, SESSION }
+    private ViewMode mode = ViewMode.OVERVIEW;
+    private final StatisticsService statsService;
     private final SurfaceCard root;
-    private final ScrollView statsScroll;
-    private final BaseComp statsContent;
+    private final ScrollView scroll;
+    private final BaseComp content;
+
     private final SurfaceCard heroCard;
-    private final Label heroTitle;
-    private final Label heroSubtitle;
-    private final Label heroStatus;
-    private final KpiCard totalSessionsKpi;
-    private final KpiCard completeSessionsKpi;
-    private final KpiCard fillRateKpi;
-    private final KpiCard unregisteredKpi;
-    private final SurfaceCard analysisCard;
-    private final Label analysisTitle;
-    private final Label analysisLine1;
-    private final Label analysisLine2;
-    private final Label analysisLine3;
-    private final SurfaceCard studentsCard;
-    private final Label studentsTitle;
-    private final Label studentsSubtitle;
-    private final SearchField studentSearchField;
-    private final Label studentCountLabel;
-    private final ScrollView unregisteredScroll;
-    private final BaseComp unregisteredList;
+    private final SurfaceCard tabBar;
+    private final PrimaryButton tabOverview, tabStudents, tabSessions;
+
+    private final StatsKpiSection kpiSection;
+    private final StatsFilterSection filterSection;
+    private final StatsSessionsSection sessionsSection;
+    private final StatsStudentsSection studentsSection;
+    private final StudentDetailPanel studentDetail;
+    private final SessionDetailPanel sessionDetail;
 
     private Consumer<User> onSelectStudent = u -> {};
-    private List<User> cachedUnregisteredStudents = new ArrayList<>();
+    private int campaignId = -1;
+    private String promo = "";
     private boolean darkMode = true;
 
-    public StatsPanelComponent(BaseWindow window, StatisticsService statisticsService) {
-        this.statisticsService = statisticsService;
-        this.root = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
-        this.statsScroll = new ScrollView(0, 0, 100, 100);
-        this.statsContent = statsScroll.getContent();
+    public StatsPanelComponent(BaseWindow window, StatisticsService statsService) {
+        this.statsService = statsService;
+        root = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
+        scroll = new ScrollView(0, 0, 100, 100);
+        content = scroll.getContent();
 
-        this.heroCard = new SurfaceCard(0, 0, 100, 120, new Color(18, 24, 35), new Color(52, 63, 92), 14);
-        this.heroTitle = new Label("Statistiques de campagne", 18, 16, 400, 26);
-        this.heroTitle.setFont(new Font("Dialog", Font.BOLD, 22));
-        this.heroTitle.setColor(new Color(239, 244, 252));
-        this.heroSubtitle = new Label("Vue synthétique des inscriptions et du remplissage", 18, 48, 520, 20);
-        this.heroSubtitle.setFont(new Font("Dialog", Font.PLAIN, 13));
-        this.heroSubtitle.setColor(new Color(161, 175, 202));
-        this.heroStatus = new Label("Actualisez uniquement cette vue pour recalculer les données", 18, 72, 620, 18);
-        this.heroStatus.setFont(new Font("Dialog", Font.PLAIN, 12));
-        this.heroStatus.setColor(new Color(129, 143, 170));
-        heroCard.addChild(heroTitle);
-        heroCard.addChild(heroSubtitle);
-        heroCard.addChild(heroStatus);
+        heroCard = card(0, 0, 100, 120, new Color(18, 24, 35));
+        heroCard.addChild(label("Statistiques", 18, 14, 280, 24, 20, true, new Color(239, 244, 252)));
+        heroCard.addChild(label("Analyse des inscriptions", 18, 44, 380, 18, 13, false, new Color(161, 175, 202)));
+        heroCard.addChild(label("Cliquez sur Actualiser pour mettre a jour", 18, 68, 380, 16, 11, false, new Color(129, 143, 170)));
 
-        this.totalSessionsKpi = new KpiCard("Sessions totales", "0", "Nombre total", new java.awt.Color(59, 130, 246));
-        this.completeSessionsKpi = new KpiCard("Sessions completes", "0", "Plein", new java.awt.Color(34, 197, 94));
-        this.fillRateKpi = new KpiCard("Taux remplissage", "0%", "Moyenne", new java.awt.Color(245, 158, 11));
-        this.unregisteredKpi = new KpiCard("Non inscrits", "0", "Etudiants", new java.awt.Color(239, 68, 68));
+        tabBar = card(0, 0, 100, 50, new Color(22, 28, 39));
+        tabOverview = new PrimaryButton("Vue", 0, 0, 80, 38, () -> switchView(ViewMode.OVERVIEW));
+        tabStudents = new PrimaryButton("Etudiants", 88, 0, 108, 38, () -> switchView(ViewMode.STUDENT));
+        tabSessions = new PrimaryButton("Sessions", 204, 0, 96, 38, () -> switchView(ViewMode.SESSION));
+        tabOverview.setBackground(new Color(59, 130, 246));
+        tabStudents.setBackground(new Color(40, 50, 70));
+        tabSessions.setBackground(new Color(40, 50, 70));
+        tabBar.addChild(tabOverview); tabBar.addChild(tabStudents); tabBar.addChild(tabSessions);
 
-        this.analysisCard = new SurfaceCard(0, 0, 100, 180, new Color(22, 28, 39), new Color(48, 60, 82), 14);
-        this.analysisTitle = new Label("Lecture rapide", 18, 16, 220, 20);
-        this.analysisTitle.setFont(new Font("Dialog", Font.BOLD, 15));
-        this.analysisTitle.setColor(new Color(239, 244, 252));
-        this.analysisLine1 = new Label("Sessions complètes: 0", 18, 50, 320, 18);
-        this.analysisLine1.setFont(new Font("Dialog", Font.PLAIN, 13));
-        this.analysisLine1.setColor(new Color(193, 205, 227));
-        this.analysisLine2 = new Label("Capacité utilisée: 0 / 0", 18, 76, 320, 18);
-        this.analysisLine2.setFont(new Font("Dialog", Font.PLAIN, 13));
-        this.analysisLine2.setColor(new Color(193, 205, 227));
-        this.analysisLine3 = new Label("Etudiants non inscrits: 0", 18, 102, 320, 18);
-        this.analysisLine3.setFont(new Font("Dialog", Font.PLAIN, 13));
-        this.analysisLine3.setColor(new Color(193, 205, 227));
-        analysisCard.addChild(analysisTitle);
-        analysisCard.addChild(analysisLine1);
-        analysisCard.addChild(analysisLine2);
-        analysisCard.addChild(analysisLine3);
+        kpiSection = new StatsKpiSection();
+        filterSection = new StatsFilterSection(statsService);
+        sessionsSection = new StatsSessionsSection();
+        studentsSection = new StatsStudentsSection();
+        studentDetail = new StudentDetailPanel(statsService);
+        sessionDetail = new SessionDetailPanel(statsService);
 
-        this.studentsCard = new SurfaceCard(0, 0, 100, 180, new Color(22, 28, 39), new Color(48, 60, 82), 14);
-        this.studentsTitle = new Label("Etudiants a suivre", 18, 16, 220, 20);
-        this.studentsTitle.setFont(new Font("Dialog", Font.BOLD, 15));
-        this.studentsTitle.setColor(new Color(239, 244, 252));
-        this.studentsSubtitle = new Label("Cliquez un étudiant pour ouvrir son contexte", 18, 38, 340, 16);
-        this.studentsSubtitle.setFont(new Font("Dialog", Font.PLAIN, 12));
-        this.studentsSubtitle.setColor(new Color(161, 175, 202));
+        studentsSection.onSelectStudent(u -> {
+            if (campaignId > 0) { switchView(ViewMode.STUDENT); studentDetail.loadStudent(u, campaignId); }
+        });
+        sessionsSection.setOnSelectSession(s -> {
+            if (campaignId > 0) { switchView(ViewMode.SESSION); sessionDetail.loadSession(s, campaignId); }
+        });
+        studentDetail.setOnBack(() -> switchView(ViewMode.STUDENT));
+        sessionDetail.setOnBack(() -> switchView(ViewMode.SESSION));
 
-        this.studentSearchField = new SearchField(18, 58, 320, 30, "Rechercher un étudiant");
-        this.studentSearchField.setColors(new Color(28, 36, 50), new Color(48, 60, 82), new Color(82, 107, 255), new Color(239, 244, 252), new Color(132, 144, 168));
-        this.studentSearchField.setOnChange(this::renderFilteredStudents);
+        content.addChild(heroCard); content.addChild(tabBar);
+        content.addChild(kpiSection.getRoot()); content.addChild(filterSection.getRoot());
+        content.addChild(sessionsSection.getRoot()); content.addChild(studentsSection.getRoot());
+        content.addChild(studentDetail.getRoot()); content.addChild(sessionDetail.getRoot());
+        studentDetail.getRoot().setVisible(false); sessionDetail.getRoot().setVisible(false);
 
-        this.studentCountLabel = new Label("0 étudiant", 18, 92, 220, 16);
-        this.studentCountLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
-        this.studentCountLabel.setColor(new Color(161, 175, 202));
-
-        this.unregisteredScroll = new ScrollView(0, 0, 100, 100);
-        this.unregisteredList = unregisteredScroll.getContent();
-
-        studentsCard.addChild(studentsTitle);
-        studentsCard.addChild(studentsSubtitle);
-        studentsCard.addChild(studentSearchField);
-        studentsCard.addChild(studentCountLabel);
-        studentsCard.addChild(unregisteredScroll);
-
-        statsContent.addChild(heroCard);
-        statsContent.addChild(totalSessionsKpi);
-        statsContent.addChild(completeSessionsKpi);
-        statsContent.addChild(fillRateKpi);
-        statsContent.addChild(unregisteredKpi);
-        statsContent.addChild(analysisCard);
-        statsContent.addChild(studentsCard);
-        root.addChild(statsScroll);
+        root.addChild(scroll);
     }
 
     public BaseComp getRoot() { return root; }
     public void onSelectStudent(Consumer<User> cb) { this.onSelectStudent = cb; }
+
     public void setDarkMode(boolean dark) {
-        this.darkMode = dark;
-        if (dark) {
-            root.setBackground(new Color(14, 18, 26));
-            heroCard.setBackground(new Color(18, 24, 35));
-            heroCard.setBorderColor(new Color(52, 63, 92));
-            analysisCard.setBackground(new Color(22, 28, 39));
-            analysisCard.setBorderColor(new Color(48, 60, 82));
-            studentsCard.setBackground(new Color(22, 28, 39));
-            studentsCard.setBorderColor(new Color(48, 60, 82));
-        } else {
-            root.setBackground(new Color(243, 246, 252));
-            heroCard.setBackground(Color.WHITE);
-            heroCard.setBorderColor(new Color(226, 230, 238));
-            analysisCard.setBackground(Color.WHITE);
-            analysisCard.setBorderColor(new Color(226, 230, 238));
-            studentsCard.setBackground(Color.WHITE);
-            studentsCard.setBorderColor(new Color(226, 230, 238));
+        darkMode = dark;
+        root.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
+        heroCard.setBackground(dark ? new Color(18, 24, 35) : Color.WHITE);
+        heroCard.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        tabBar.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
+        Color active = new Color(59, 130, 246);
+        Color inactive = dark ? new Color(40, 50, 70) : new Color(236, 238, 242);
+        tabOverview.setBackground(mode == ViewMode.OVERVIEW ? active : inactive);
+        tabStudents.setBackground(mode == ViewMode.STUDENT ? active : inactive);
+        tabSessions.setBackground(mode == ViewMode.SESSION ? active : inactive);
+        kpiSection.setDarkMode(dark); filterSection.setDarkMode(dark);
+        sessionsSection.setDarkMode(dark); studentsSection.setDarkMode(dark);
+        studentDetail.setDarkMode(dark); sessionDetail.setDarkMode(dark);
+        root.invalidate();
+    }
+
+    private void switchView(ViewMode m) {
+        mode = m;
+        Color active = new Color(59, 130, 246);
+        Color inactive = darkMode ? new Color(40, 50, 70) : new Color(236, 238, 242);
+        tabOverview.setBackground(m == ViewMode.OVERVIEW ? active : inactive);
+        tabStudents.setBackground(m == ViewMode.STUDENT ? active : inactive);
+        tabSessions.setBackground(m == ViewMode.SESSION ? active : inactive);
+
+        kpiSection.getRoot().setVisible(false);
+        filterSection.getRoot().setVisible(false);
+        sessionsSection.getRoot().setVisible(false);
+        studentsSection.getRoot().setVisible(false);
+        studentDetail.getRoot().setVisible(false);
+        sessionDetail.getRoot().setVisible(false);
+
+        if (m == ViewMode.OVERVIEW) {
+            kpiSection.getRoot().setVisible(true);
+            filterSection.getRoot().setVisible(true);
+            sessionsSection.getRoot().setVisible(true);
+        } else if (m == ViewMode.STUDENT) {
+            studentsSection.getRoot().setVisible(true);
+        } else if (m == ViewMode.SESSION) {
+            sessionsSection.getRoot().setVisible(true);
         }
         root.invalidate();
     }
 
     public void refresh(int campaignId, String promo) {
-        if (campaignId <= 0 || promo == null) {
-            heroSubtitle.setText("Aucune campagne active");
-            heroStatus.setText("Sélectionnez ou ouvrez une campagne pour afficher les statistiques.");
-            analysisLine1.setText("Sessions complètes: 0");
-            analysisLine2.setText("Capacité utilisée: 0 / 0");
-            analysisLine3.setText("Etudiants non inscrits: 0");
-            clearChildren(unregisteredList);
-            Label empty = new Label("Aucune donnée disponible pour le moment.", 0, 0, 280, 22);
-            empty.setFont(new Font("Dialog", Font.PLAIN, 13));
-            empty.setColor(new Color(172, 183, 204));
-            unregisteredList.addChild(empty);
-            return;
-        }
-        heroSubtitle.setText("Promo " + promo + " • Campagne #" + campaignId);
-        heroStatus.setText("Actualisé à la demande via le bouton Actualiser");
-        StatisticsService.StatsSummary s = statisticsService.getStatsForCampaign(campaignId, promo);
-        totalSessionsKpi.setValue(String.valueOf(s.totalSessions));
-        completeSessionsKpi.setValue(String.valueOf(s.completeSessions));
-        fillRateKpi.setValue(String.format("%.1f%%", s.averageFillRate));
-        unregisteredKpi.setValue(String.valueOf(s.unregisteredStudents));
-
-        analysisLine1.setText("Sessions complètes: " + s.completeSessions + " / " + s.totalSessions);
-        analysisLine2.setText("Capacité utilisée: " + s.totalAllocated + " / " + s.totalCapacity);
-        analysisLine3.setText("Etudiants non inscrits: " + s.unregisteredStudents + " / " + s.totalStudents);
-
-        List<User> unregistered = statisticsService.getUnregisteredStudents(campaignId, promo);
-        cachedUnregisteredStudents = new ArrayList<>(unregistered);
-        clearChildren(unregisteredList);
-        int y = 0;
-        for (User u : unregistered) {
-            String name = u.getFullName() == null || u.getFullName().isBlank() ? u.getLogin() : u.getFullName();
-            Button b = new Button(name, 0, y, Math.max(220, unregisteredScroll.getWidth() - 8), 38, () -> onSelectStudent.accept(u));
-            b.setBackground(new java.awt.Color(40, 50, 70));
-            unregisteredList.addChild(b);
-            y += 40;
-        }
-        if (unregistered.isEmpty()) {
-            Label l = new Label("Tous les étudiants sont inscrits.", 0, 0, 280, 24);
-            l.setFont(new Font("Dialog", Font.PLAIN, 13));
-            l.setColor(new Color(172, 183, 204));
-            unregisteredList.addChild(l);
-        }
-        unregisteredScroll.setContentHeight(Math.max(unregisteredScroll.getHeight(), y + 10));
+        this.campaignId = campaignId;
+        this.promo = promo;
+        if (campaignId <= 0 || promo == null || promo.isBlank()) return;
+        StatisticsService.StatsSummary s = statsService.getStatsForCampaign(campaignId, promo);
+        kpiSection.update(s);
+        sessionsSection.refresh(s);
+        filterSection.refresh(campaignId, promo);
+        List<User> unreg = statsService.getUnregisteredStudents(campaignId, promo);
+        List<User> reg = statsService.getRegisteredStudents(campaignId, promo);
+        studentsSection.update(s, reg, unreg);
+        switchView(ViewMode.OVERVIEW);
     }
 
     public void onResize(int mainW, int mainH) {
-        statsScroll.setBounds(0, 0, mainW, mainH);
-        int gap = 12;
-        int pad = 0;
+        root.setBounds(0, 0, mainW, mainH);
+        scroll.setBounds(0, 0, mainW, mainH);
+        content.setBounds(0, 0, mainW, Math.max(mainH, 1000));
 
-        heroCard.setBounds(pad, 0, mainW, 124);
-        int heroCardY = 128;
+        heroCard.setBounds(0, 0, mainW, 120);
+        tabBar.setBounds(0, 128, mainW, 50);
+        int tabTotal = 80 + 108 + 96;
+        int tabStart = (mainW - tabTotal) / 2;
+        tabOverview.setBounds(tabStart, 6, 80, 38);
+        tabStudents.setBounds(tabStart + 88, 6, 108, 38);
+        tabSessions.setBounds(tabStart + 204, 6, 96, 38);
 
-        int kpiW = (mainW - gap * 3) / 4;
-        int kpiH = 104;
-        totalSessionsKpi.setBounds(0, heroCardY, kpiW, kpiH);
-        completeSessionsKpi.setBounds(kpiW + gap, heroCardY, kpiW, kpiH);
-        fillRateKpi.setBounds((kpiW + gap) * 2, heroCardY, kpiW, kpiH);
-        unregisteredKpi.setBounds((kpiW + gap) * 3, heroCardY, kpiW, kpiH);
+        kpiSection.onResize(mainW);
+        kpiSection.getRoot().setBounds(0, 186, mainW, 116);
 
-        int lowerY = heroCardY + kpiH + gap;
-        int halfW = (mainW - gap) / 2;
-        int lowerH = Math.max(240, mainH - lowerY - 18);
-        analysisCard.setBounds(0, lowerY, halfW, lowerH);
-        studentsCard.setBounds(halfW + gap, lowerY, mainW - halfW - gap, lowerH);
-        studentSearchField.setBounds(16, 58, Math.max(220, halfW - 32), 30);
-        studentCountLabel.setBounds(16, 92, halfW - 32, 16);
-        unregisteredScroll.setBounds(16, 130, studentsCard.getWidth() - 32, lowerH - 138);
+        filterSection.onResize(mainW, 160);
+        filterSection.getRoot().setBounds(0, 310, mainW, 160);
+
+        int contentY = 478;
+        int contentH = Math.max(280, mainH - contentY - 16);
+
+        sessionsSection.onResize(mainW, contentH);
+        studentsSection.onResize(mainW, contentH);
+        sessionsSection.getRoot().setBounds(0, contentY, mainW, contentH);
+        studentsSection.getRoot().setBounds(0, contentY, mainW, contentH);
+        studentDetail.onResize(mainW, contentH);
+        studentDetail.getRoot().setBounds(0, contentY, mainW, contentH);
+        sessionDetail.onResize(mainW, contentH);
+        sessionDetail.getRoot().setBounds(0, contentY, mainW, contentH);
+
+        scroll.setContentHeight(contentY + contentH + 20);
     }
 
-    /**
-     * Filtre la liste des étudiants non inscrits selon la requête de recherche.
-     * La recherche est effectuée sur le nom complet ou le login (case-insensitive).
-     * La liste de cache est conservée, seul l'affichage est filtré.
-     * 
-     * @param query Texte de recherche (peut être vide)
-     */
-    private void renderFilteredStudents() {
-        String query = studentSearchField.getCurrentText();
-        clearChildren(unregisteredList);
-        String lowerQuery = (query == null ? "" : query).toLowerCase();
-        
-        List<User> filtered = new ArrayList<>();
-        for (User u : cachedUnregisteredStudents) {
-            if (u == null) continue;
-            String name = (u.getFullName() == null ? "" : u.getFullName()).toLowerCase();
-            String login = (u.getLogin() == null ? "" : u.getLogin()).toLowerCase();
-            if (name.contains(lowerQuery) || login.contains(lowerQuery)) {
-                filtered.add(u);
-            }
-        }
-        
-        int y = 0;
-        for (User u : filtered) {
-            String displayName = (u.getFullName() == null || u.getFullName().isBlank()) ? u.getLogin() : u.getFullName();
-            Button b = new Button(displayName, 0, y, Math.max(220, unregisteredScroll.getWidth() - 8), 38, () -> onSelectStudent.accept(u));
-            b.setBackground(new java.awt.Color(40, 50, 70));
-            unregisteredList.addChild(b);
-            y += 40;
-        }
-        
-        if (filtered.isEmpty()) {
-            Label l = new Label("Aucun résultat.", 0, 0, 280, 24);
-            l.setFont(new Font("Dialog", Font.PLAIN, 13));
-            l.setColor(new Color(172, 183, 204));
-            unregisteredList.addChild(l);
-        }
-        
-        unregisteredScroll.setContentHeight(Math.max(unregisteredScroll.getHeight(), y + 10));
+    private SurfaceCard card(int x, int y, int w, int h, Color bg) {
+        return new SurfaceCard(x, y, w, h, bg, new Color(52, 63, 92), 12);
     }
 
-    private void clearChildren(main.BaseComp parent) { ArrayList<main.BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (main.BaseComp c : snapshot) parent.removeChild(c); }
+    private Label label(String text, int x, int y, int w, int h, int size, boolean bold, Color color) {
+        Label l = new Label(text, x, y, w, h);
+        l.setFont(new java.awt.Font("Dialog", bold ? java.awt.Font.BOLD : java.awt.Font.PLAIN, size));
+        l.setColor(color);
+        return l;
+    }
 }
