@@ -7,6 +7,14 @@ import java.awt.Graphics;
 import components.Label;
 import main.BaseComp;
 
+/**
+ * A compact row component that displays an overview of a dominante (academic
+ * major / specialization). It shows a coloured code badge, the dominante
+ * name, the number of scheduled sessions, the allocated/capacity counts, and
+ * the fill rate as a percentage. The badge colour is deterministically derived
+ * from the dominante code using a hash function, giving each dominante a
+ * consistent colour across the UI.
+ */
 public class DominanteOverviewRow extends SurfaceCard {
     private final BaseComp codeBadgeBg;
     private final Label codeBadge;
@@ -16,6 +24,9 @@ public class DominanteOverviewRow extends SurfaceCard {
     private final Label rateLabel;
     private Color badgeColor;
 
+    /**
+     * Constructs a dominante overview row with default placeholder values.
+     */
     public DominanteOverviewRow() {
         super(0, 0, 100, 64, Color.WHITE, new Color(232, 236, 242), 10);
 
@@ -71,6 +82,18 @@ public class DominanteOverviewRow extends SurfaceCard {
         rateLabel.setBounds(width - 120, 34, 100, 16);
     }
 
+    /**
+     * Populates the row with the given dominante data. The code is truncated
+     * to at most three uppercase characters and used to derive the badge
+     * colour.
+     *
+     * @param code            the dominante code (used for badge text and colour)
+     * @param name            the display name of the dominante
+     * @param sessionCount    the number of scheduled sessions
+     * @param allocated       the number of students currently allocated
+     * @param capacity        the maximum student capacity
+     * @param fillRatePercent the fill rate as a percentage (0-100)
+     */
     public void setData(String code, String name, int sessionCount, int allocated, int capacity, int fillRatePercent) {
         String safeCode = code == null || code.isBlank() ? "--" : code.trim().toUpperCase();
         String safeName = name == null || name.isBlank() ? "Dominante" : name;

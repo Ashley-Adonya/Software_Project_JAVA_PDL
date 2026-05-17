@@ -11,6 +11,14 @@ import components.Button;
 import model.User;
 import service.StatisticsService;
 
+/**
+ * A comprehensive statistics overview section for the dashboard. It displays
+ * four KPI cards (total sessions, complete sessions, average fill rate, and
+ * unregistered students), a panel listing unregistered students, and a
+ * student planning panel that shows a selected student's session schedule.
+ * The section integrates with {@link StatisticsService} to fetch session
+ * data and supports dark mode toggling.
+ */
 public class StatsOverviewSection extends BaseComp {
     private final Color PAGE_BG;
     private final Color PANEL_BG;
@@ -39,6 +47,14 @@ public class StatsOverviewSection extends BaseComp {
     private StatisticsService statisticsService;
     private int campaignId;
 
+    /**
+     * Constructs the statistics overview section with KPI cards, an
+     * unregistered students panel, and a student planning panel.
+     *
+     * @param width       the initial width of this section
+     * @param height      the initial height of this section
+     * @param statsService the service used to fetch statistics and session data
+     */
     public StatsOverviewSection(int width, int height, StatisticsService statsService) {
         super(null);
         
@@ -95,14 +111,31 @@ public class StatsOverviewSection extends BaseComp {
         addChild(studentPlanningCard);
     }
 
+    /**
+     * Sets the campaign ID used when fetching student session data.
+     *
+     * @param campaignId the identifier of the current campaign
+     */
     public void setCampaignId(int campaignId) {
         this.campaignId = campaignId;
     }
 
+    /**
+     * Registers a callback to be invoked when a student is selected from the
+     * unregistered list.
+     *
+     * @param r the runnable to invoke on student selection; may be null
+     */
     public void setOnStudentSelected(Runnable r) {
         this.onStudentSelected = r;
     }
 
+    /**
+     * Updates the four KPI cards with the provided summary statistics.
+     *
+     * @param stats the statistics summary containing total sessions, complete
+     *              sessions, average fill rate, and unregistered student count
+     */
     public void updateStats(StatisticsService.StatsSummary stats) {
         totalSessionsKpi.setValue(String.valueOf(stats.totalSessions));
         completeSessionsKpi.setValue(String.valueOf(stats.completeSessions));
@@ -110,6 +143,13 @@ public class StatsOverviewSection extends BaseComp {
         unregisteredKpi.setValue(String.valueOf(stats.unregisteredStudents));
     }
 
+    /**
+     * Rebuilds the unregistered students list panel with the given students.
+     * Each student is rendered as a clickable button that, when pressed,
+     * selects that student and displays their session planning.
+     *
+     * @param students the list of unregistered students; may be empty
+     */
     public void updateUnregisteredStudents(List<User> students) {
         clearChildren(unregisteredList);
         
@@ -206,6 +246,14 @@ public class StatsOverviewSection extends BaseComp {
         }
     }
 
+    /**
+     * Recalculates and applies the layout of all child components based on
+     * the available main width. Places KPI cards in a row, then positions
+     * the two panels (unregistered students and student planning) side by
+     * side below them.
+     *
+     * @param mainW the available width for layout
+     */
     public void layout(int mainW) {
         int gap = 12;
         int kpiW = (mainW - gap * 3) / 4;
@@ -231,6 +279,12 @@ public class StatsOverviewSection extends BaseComp {
         planningScroll.setBounds(8, 64, halfW - 16, cardH - 80);
     }
 
+    /**
+     * Toggles the visual theme between dark mode and light mode for all
+     * child panels, cards, and labels.
+     *
+     * @param darkMode true to apply the dark theme, false for the light theme
+     */
     public void setDarkMode(boolean darkMode) {
         Color panelBg = darkMode ? new Color(22, 28, 39) : Color.WHITE;
         Color borderColor = darkMode ? new Color(48, 60, 82) : new Color(226, 232, 240);

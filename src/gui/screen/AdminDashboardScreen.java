@@ -19,15 +19,32 @@ import gui.navigation.AppScreen;
 public class AdminDashboardScreen implements AppScreen {
     private final AdminDashboardView view;
 
+    /**
+     * Creates a new admin dashboard screen and initializes the underlying view.
+     *
+     * @param window   the main application window used for rendering and layout management
+     * @param user     the authenticated admin user whose data and permissions will drive the dashboard content
+     * @param onLogout a callback invoked when the user requests to log out; triggers navigation back to the login screen
+     */
     public AdminDashboardScreen(BaseWindow window, User user, Runnable onLogout) {
         this.view = new AdminDashboardView(window, user, onLogout);
     }
 
+    /**
+     * Mounts the admin dashboard by delegating to the underlying AdminDashboardView.
+     * This method is called by the ScreenRouter when this screen becomes the active screen.
+     * It initializes all UI components, loads initial data, and triggers the first render.
+     */
     @Override
     public void mount() {
         view.mount();
     }
 
+    /**
+     * Handles window resize events by delegating to the underlying AdminDashboardView.
+     * Recalculates all component positions and dimensions to maintain a responsive layout.
+     * This method is called automatically by the ScreenRouter via the window resize listener.
+     */
     @Override
     public void onResize() {
         view.onResize();

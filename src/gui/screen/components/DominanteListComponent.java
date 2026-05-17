@@ -43,6 +43,13 @@ public class DominanteListComponent {
     private Runnable onCreate = () -> {};
     private boolean darkMode = true;
 
+/**
+ * Constructeur du composant de liste des dominantes.
+ *
+ * @param window            la fenêtre parente
+ * @param dominanteService  le service de gestion des dominantes
+ * @param view              la vue dashboard admin parente
+ */
 public DominanteListComponent(BaseWindow window, DominanteService dominanteService, AdminDashboardView view) {
         this.dominanteService = dominanteService;
         this.window = window;
@@ -56,15 +63,40 @@ public DominanteListComponent(BaseWindow window, DominanteService dominanteServi
         backgroundCard.addChild(dominantesScroll);
     }
 
+    /**
+     * Retourne le composant racine pour l'affichage.
+     *
+     * @return le composant racine encapsulant la liste des dominantes
+     */
     public BaseComp getRoot() { return backgroundCard; }
+    /**
+     * Définit le callback appelé lors de l'édition d'une dominante.
+     *
+     * @param cb le consommateur appelé avec la dominante à éditer
+     */
     public void onEdit(Consumer<Dominante> cb) { this.onEdit = cb; }
+    /**
+     * Définit le callback appelé lors de la création d'une dominante.
+     *
+     * @param cb l'action à exécuter pour créer une dominante
+     */
     public void onCreate(Runnable cb) { this.onCreate = cb; }
 
+    /**
+     * Active ou désactive le mode sombre.
+     *
+     * @param dark true pour le mode sombre, false pour le mode clair
+     */
     public void setDarkMode(boolean dark) {
         this.darkMode = dark;
         applyDarkMode(dark);
     }
 
+    /**
+     * Applique les couleurs du mode sombre ou clair aux composants internes.
+     *
+     * @param dark true pour le mode sombre, false pour le mode clair
+     */
     private void applyDarkMode(boolean dark) {
         if (dark) {
             backgroundCard.setBackground(new Color(14, 18, 26));
@@ -78,6 +110,10 @@ public DominanteListComponent(BaseWindow window, DominanteService dominanteServi
         backgroundCard.invalidate();
     }
 
+    /**
+     * Rafraîchit la liste des dominantes en interrogeant le service.
+     * Réinitialise le contenu et reconstruit les cartes pour chaque dominante.
+     */
     public void refresh() {
         List<Dominante> list = dominanteService.listAll();
         clearChildren(dominantesList);
@@ -127,13 +163,30 @@ public DominanteListComponent(BaseWindow window, DominanteService dominanteServi
         dominantesScroll.setContentWidth(Math.max(dominantesScroll.getWidth(), containerWidth));
     }
 
+    /**
+     * Ajuste la disposition des composants lors du redimensionnement de la fenêtre.
+     *
+     * @param mainW la nouvelle largeur de la fenêtre
+     * @param mainH la nouvelle hauteur de la fenêtre
+     */
     public void onResize(int mainW, int mainH) {
         backgroundCard.setBounds(0, 0, mainW, mainH);
         createButton.setBounds(mainW - 220, 0, 220, 32);
         dominantesScroll.setBounds(0, 44, mainW, Math.max(220, mainH - 44));
     }
 
+    /**
+     * Supprime tous les enfants d'un composant parent.
+     *
+     * @param parent le composant dont les enfants doivent être supprimés
+     */
     private void clearChildren(BaseComp parent) { ArrayList<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (BaseComp c : snapshot) parent.removeChild(c); }
+    /**
+     * Convertit une chaîne hexadécimale en objet Color.
+     *
+     * @param hex la couleur au format hexadécimal (avec ou sans #)
+     * @return l'objet Color correspondant, ou une couleur par défaut si le format est invalide
+     */
     private Color parseDominanteColor(String hex) {
         if (hex == null || hex.isBlank()) return new Color(124, 92, 255);
         try { return Color.decode(hex.startsWith("#") ? hex : "#" + hex); }

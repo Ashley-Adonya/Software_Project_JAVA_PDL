@@ -6,6 +6,14 @@ import java.awt.Font;
 import components.Button;
 import components.Label;
 
+/**
+ * A card component used in the admin panel to manage a student's
+ * registration status for a specific session. It displays the student
+ * name, session information, and current registration status. Based on
+ * whether the student is already registered, either a green "Inscrire"
+ * (register) button or a red "Suppr" (remove) button is shown. The
+ * register button is disabled when the session has reached full capacity.
+ */
 public class AdminRegistrationCard extends SurfaceCard {
     private final Color TEXT_MAIN;
     private final Color TEXT_MUTED;
@@ -19,6 +27,15 @@ public class AdminRegistrationCard extends SurfaceCard {
     private Runnable onRegister;
     private Runnable onRemove;
 
+    /**
+     * Constructs an admin registration card with the specified dimensions
+     * and colour scheme.
+     *
+     * @param width       the width of the card
+     * @param height      the height of the card
+     * @param cardBg      the background colour of the card
+     * @param borderColor the border colour of the card
+     */
     public AdminRegistrationCard(int width, int height, Color cardBg, Color borderColor) {
         super(0, 0, width, height, cardBg, borderColor, 12);
         this.TEXT_MAIN = new Color(235, 241, 255);
@@ -57,6 +74,18 @@ public class AdminRegistrationCard extends SurfaceCard {
         addChild(removeButton);
     }
 
+    /**
+     * Populates the card fields and toggles the visibility of the register
+     * and remove buttons based on the student's current registration status.
+     *
+     * @param studentName  the full name of the student
+     * @param sessionInfo  a string describing the session (e.g. date, time,
+     *                     room)
+     * @param isRegistered whether the student is already registered
+     * @param allocated    the number of students currently allocated to the
+     *                     session
+     * @param capacity     the maximum capacity of the session
+     */
     public void setData(String studentName, String sessionInfo, boolean isRegistered, int allocated, int capacity) {
         studentNameLabel.setText(studentName);
         sessionInfoLabel.setText(sessionInfo);
@@ -80,10 +109,20 @@ public class AdminRegistrationCard extends SurfaceCard {
         }
     }
 
+    /**
+     * Sets the callback invoked when the register button is clicked.
+     *
+     * @param r the runnable to invoke on register; may be null
+     */
     public void setOnRegister(Runnable r) {
         this.onRegister = r;
     }
 
+    /**
+     * Sets the callback invoked when the remove button is clicked.
+     *
+     * @param r the runnable to invoke on removal; may be null
+     */
     public void setOnRemove(Runnable r) {
         this.onRemove = r;
     }

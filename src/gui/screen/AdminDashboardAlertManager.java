@@ -7,17 +7,35 @@ import model.Campaign;
 import service.StatisticsService;
 
 /**
- * Gestionnaire d'alertes pour le tableau de bord administrateur.
- * Génère des alertes contextuelles basées sur l'état de la campagne.
- * Fournit des méthodes statiques réutilisables par les composants dashboard.
+ * Generates contextual alert items for the admin dashboard based on the state
+ * of the active campaign and live statistical data.
+ * <p>
+ * Alerts cover the following conditions:
+ * <ul>
+ *   <li>Missing or null campaign</li>
+ *   <li>Current campaign phase (PREPARATION, OPEN, CLOSED, PROCESSING)</li>
+ *   <li>Presence of unregistered students</li>
+ *   <li>High session fill rate (≥95%)</li>
+ *   <li>Absence of any sessions</li>
+ * </ul>
+ * All methods are static, making them reusable by any dashboard component
+ * without requiring an instance of this manager.
+ * </p>
  */
 public class AdminDashboardAlertManager {
     
     /**
-     * Génère la liste des alertes pour une campagne donnée.
-     * @param campaign La campagne active (peut être null)
-     * @param statisticsService Le service de statistiques
-     * @return Liste d'alertes à afficher
+     * Generates a complete list of alert items for the given campaign.
+     * <p>
+     * If the campaign is {@code null}, a single warning alert ("No active campaign")
+     * is returned. Otherwise, alerts are produced for the campaign's current phase
+     * status and for noteworthy statistics (e.g. unregistered students, high fill
+     * rate, zero sessions).
+     * </p>
+     *
+     * @param campaign          the currently active campaign, or {@code null} if none exists
+     * @param statisticsService the service providing aggregated statistics for the campaign
+     * @return a list of {@link AlertContainer.AlertItem} instances to be rendered on the dashboard
      */
     public static List<AlertContainer.AlertItem> generateAlerts(Campaign campaign, StatisticsService statisticsService) {
         List<AlertContainer.AlertItem> alerts = new ArrayList<>();

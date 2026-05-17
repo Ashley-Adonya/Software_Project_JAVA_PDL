@@ -15,6 +15,15 @@ import event.UiEvent;
 
 import main.BaseComp;
 
+/**
+ * A fully featured password input field with masked character display,
+ * text selection, clipboard operations (cut/copy/paste), undo/redo history,
+ * and caret navigation. Characters are displayed as asterisks ('*') while
+ * the actual text is stored internally. The field supports mouse-based
+ * caret positioning and selection dragging, as well as keyboard shortcuts
+ * (Ctrl+A, Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+Z, Ctrl+Y). It has configurable
+ * colours, placeholder text, and a maximum length constraint.
+ */
 public class PasswordField extends BaseComp {
     private static final int PADDING_X = 12;
     private static final int BASELINE_OFFSET = 6;
@@ -49,6 +58,16 @@ public class PasswordField extends BaseComp {
     private final Deque<EditState> undoStack;
     private final Deque<EditState> redoStack;
 
+    /**
+     * Constructs a password field with the given position and dimensions.
+     * Registers pointer event handlers for caret positioning and selection
+     * dragging.
+     *
+     * @param x      the x-coordinate of the field
+     * @param y      the y-coordinate of the field
+     * @param width  the width of the field
+     * @param height the height of the field
+     */
     public PasswordField(int x, int y, int width, int height) {
         super(null);
         this.text = "";
@@ -250,10 +269,21 @@ public class PasswordField extends BaseComp {
         }
     }
 
+    /**
+     * Returns the actual (unmasked) text content of the password field.
+     *
+     * @return the current password text
+     */
     public String getText() {
         return text;
     }
 
+    /**
+     * Sets the text content of the password field, resets the caret to the
+     * end of the text, and clears the undo/redo history.
+     *
+     * @param text the new text; null is treated as an empty string
+     */
     public void setText(String text) {
         this.text = text == null ? "" : text;
         this.caretIndex = this.text.length();
@@ -262,11 +292,23 @@ public class PasswordField extends BaseComp {
         invalidate();
     }
 
+    /**
+     * Sets the placeholder text displayed when the field is empty.
+     *
+     * @param placeholder the placeholder text; null is treated as an empty
+     *                    string
+     */
     public void setPlaceholder(String placeholder) {
         this.placeholder = placeholder == null ? "" : placeholder;
         invalidate();
     }
 
+    /**
+     * Sets the maximum number of characters allowed in this field.
+     *
+     * @param maxLength the maximum character count; values below 1 are clamped
+     *                  to 1
+     */
     public void setMaxLength(int maxLength) {
         this.maxLength = Math.max(1, maxLength);
     }

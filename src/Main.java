@@ -2,12 +2,27 @@ import gui.navigation.ScreenRouter;
 import main.BaseWindow;
 
 /**
- * Point d'entrée principal de l'application de gestion des choix de dominantes (PDL).
- * 
- * Note : Les commentaires techniques et la structure de la Javadoc ont été réalisés 
- * partiellement avec l'assistance d'une IA pour garantir une documentation claire des fonctionnalités avancées.
+ * Main entry point of the PDL (Dominante Choice Management) application for
+ * Esigelec.
+ * <p>
+ * This class is responsible for bootstrapping the application: it creates the
+ * primary {@link BaseWindow}, configures debug overlays, initialises the
+ * {@link ScreenRouter}, presents the login screen, and makes the window visible.
+ * The entire navigation life cycle is delegated to {@link ScreenRouter} after
+ * startup.
+ * </p>
  */
 public class Main {
+	/**
+	 * Application entry point.
+	 * <p>
+	 * Creates the main window, disables debug visual overlays, instantiates the
+	 * screen router, navigates to the login screen, and finally displays the
+	 * window.
+	 * </p>
+	 *
+	 * @param args command-line arguments (not used)
+	 */
 	public static void main(String[] args) {
 		BaseWindow window = new BaseWindow("Esigelec - PDL", 1100, 760, 0);
 		window.setDebugOverlayEnabled(false);

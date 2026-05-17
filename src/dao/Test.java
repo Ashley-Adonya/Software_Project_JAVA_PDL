@@ -4,8 +4,30 @@ import java.sql.*;
 import model.Campaign;
 import oracle.jdbc.OraclePreparedStatement;
 
+/**
+ * Data-access test utility for {@link Campaign} persistence operations.
+ * <p>
+ * Provides direct (non-DAO) CRUD methods — {@link #create(Campaign, Connection)}
+ * and {@link #findById(int, Connection)} — that exercise raw JDBC with Oracle
+ * RETURNING clauses. The {@link #main(String[])} method acts as an integration
+ * test that creates a sample campaign, retrieves it, and reports timing.
+ * </p>
+ */
 public class Test {
 
+    /**
+     * Inserts a new campaign into the database and returns its auto-generated ID.
+     * <p>
+     * Uses an Oracle {@code RETURNING id INTO ?} clause to retrieve the
+     * generated primary key. Date fields are expected as {@code YYYY-MM-DD}
+     * strings and are converted via Oracle's {@code TO_DATE}.
+     * </p>
+     *
+     * @param campaign the {@link Campaign} entity to persist (must not be null)
+     * @param conn     an active JDBC {@link Connection}; if {@code null} the
+     *                 method returns {@code -1} immediately
+     * @return the generated campaign ID on success, or {@code -1} on failure
+     */
     public int create(Campaign campaign, Connection conn) {
 
         String sql = "INSERT INTO campaigns " +
@@ -51,6 +73,20 @@ public class Test {
         return -1;
     }
 
+    /**
+     * Retrieves a campaign by its primary key.
+     * <p>
+     * Maps all columns from the {@code campaigns} table onto a {@link Campaign}
+     * object. DATE values are converted to their string representation via
+     * {@link java.sql.Date#toString()}.
+     * </p>
+     *
+     * @param id   the campaign's database identifier
+     * @param conn an active JDBC {@link Connection}; if {@code null} returns
+     *             {@code null}
+     * @return the populated {@link Campaign} if found, or {@code null} if no
+     *         row matches or an error occurs
+     */
     public Campaign findById(int id, Connection conn) {
 
         String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by " +
@@ -96,6 +132,17 @@ public class Test {
         return null;
     }
 
+    /**
+     * Integration test entry point.
+     * <p>
+     * Creates a new {@link Campaign} with hard-coded sample data, persists it
+     * via {@link #create(Campaign, Connection)}, retrieves it via
+     * {@link #findById(int, Connection)}, and prints the results together with
+     * the total execution time.
+     * </p>
+     *
+     * @param args command-line arguments (not used)
+     */
     public static void main(String[] args) {
 
         float start = System.currentTimeMillis() / 1000;
@@ -153,6 +200,15 @@ public class Test {
         System.out.println("Execution time: " + (end - start) + " seconds");
     }
 
+    /**
+     * Safely closes a JDBC resource, ignoring any exceptions.
+     * <p>
+     * Connection instances are deliberately not closed to allow reuse by the
+     * caller.
+     * </p>
+     *
+     * @param c the {@link AutoCloseable} to close; may be {@code null}
+     */
     private static void close(AutoCloseable c) {
         if (c != null && !(c instanceof java.sql.Connection)) {
             try {

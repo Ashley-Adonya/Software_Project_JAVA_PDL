@@ -30,6 +30,9 @@ public class StatisticsService {
     private final DominanteDAO dominanteDAO;
     private final CampaignDAO campaignDAO;
 
+    /**
+     * Constructs a new StatisticsService with default DAO implementations.
+     */
     public StatisticsService() {
         this.sessionDAO = new SessionDAO();
         this.registrationDAO = new RegistrationDAO();
@@ -38,6 +41,9 @@ public class StatisticsService {
         this.campaignDAO = new CampaignDAO();
     }
 
+    /**
+     * Aggregated statistics summary for a campaign, including session counts, capacity, fill rates, and student participation.
+     */
     public static class StatsSummary {
         public int totalSessions;
         public int completeSessions;
@@ -51,6 +57,9 @@ public class StatisticsService {
         public List<SessionDetail> sessionDetails = new ArrayList<>();
     }
 
+    /**
+     * Represents a summary of a single session's details for statistics display.
+     */
     public static class SessionDetail {
         public int sessionId;
         public String sessionTitle;
@@ -61,11 +70,17 @@ public class StatisticsService {
         public boolean isFull;
     }
 
+    /**
+     * Holds a student together with a list of their session information.
+     */
     public static class StudentWithSessions {
         public User student;
         public List<SessionInfo> sessions;
     }
 
+    /**
+     * Holds detailed information about a session for a specific student's session listing.
+     */
     public static class SessionInfo {
         public String dominanteName;
         public String title;
@@ -78,6 +93,13 @@ public class StatisticsService {
         public double fillRate;
     }
 
+    /**
+     * Generates a full statistics summary for a campaign, including session fill rates, capacity totals, and student counts, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @param promo      the promotional year filter for student counts
+     * @return a StatsSummary with all aggregated statistics
+     */
     public StatsSummary getStatsForCampaign(int campaignId, String promo) {
         return CacheManager.getOrLoad("stats:summary:" + campaignId + ":" + safe(promo), () -> {
             StatsSummary stats = new StatsSummary();
@@ -120,6 +142,13 @@ public class StatisticsService {
         });
     }
 
+    /**
+     * Retrieves students who do not have any registration in the specified campaign, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @param promo      the promotional year filter
+     * @return list of unregistered students
+     */
     public List<User> getUnregisteredStudents(int campaignId, String promo) {
         return CacheManager.getOrLoad("stats:unregistered:" + campaignId + ":" + safe(promo), () -> {
             List<Integer> registeredIds = registrationDAO.findStudentIdsWithRegistrations(campaignId);
@@ -127,6 +156,13 @@ public class StatisticsService {
         });
     }
 
+    /**
+     * Retrieves the list of students who have at least one registration in a given campaign, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @param promo      the promotional year filter
+     * @return list of registered students
+     */
     public List<User> getRegisteredStudents(int campaignId, String promo) {
         return CacheManager.getOrLoad("stats:registered:" + campaignId + ":" + safe(promo), () -> {
             List<User> all = userDAO.findAllStudentsByPromo(promo);
@@ -228,6 +264,13 @@ public class StatisticsService {
         return result;
     }
 
+    /**
+     * Retrieves a student's profile along with all their registered sessions and session details for a campaign, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @param studentId  the student ID
+     * @return a StudentWithSessions object containing the student and their session list
+     */
     public StudentWithSessions getStudentSessions(int campaignId, int studentId) {
         return CacheManager.getOrLoad("stats:student:" + campaignId + ":" + studentId, () -> {
             StudentWithSessions result = new StudentWithSessions();
@@ -285,6 +328,11 @@ public class StatisticsService {
         });
     }
 
+    /**
+     * Retrieves the currently active campaign (first OPEN campaign, or first PREPARATION campaign if none is OPEN), with caching.
+     *
+     * @return the active Campaign, or null if none found
+     */
     public Campaign getActiveCampaign() {
         return CacheManager.getOrLoad("stats:activeCampaign", () -> {
             List<Campaign> openCampaigns = campaignDAO.findByStatus("OPEN");
@@ -299,10 +347,22 @@ public class StatisticsService {
         });
     }
 
+    /**
+     * Sanitizes a string value for cache key usage (trims and uppercases, or returns empty string if null).
+     *
+     * @param value the raw string value
+     * @return a sanitized non-null string
+     */
     private String safe(String value) {
         return value == null ? "" : value.trim().toUpperCase();
     }
 
+    /**
+     * Formats a minute-of-day value into a HH:mm time string.
+     *
+     * @param minute the minute value from midnight
+     * @return formatted time string (e.g. "08:30")
+     */
     private String formatMinute(int minute) {
         int h = minute / 60;
         int m = minute % 60;

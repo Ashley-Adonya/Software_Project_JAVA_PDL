@@ -7,6 +7,15 @@ import main.BaseWindow;
 import components.Button;
 import components.Label;
 
+/**
+ * A card component used in the admin panel to display and manage a "dominante"
+ * (academic major or specialization). It shows key information such as the
+ * dominante code, name, description, number of sessions, total capacity,
+ * current enrollment count, and fill rate. Two action buttons allow editing
+ * or deleting the dominante, with the delete action prompting a confirmation
+ * dialog before proceeding. The card supports both light and dark colour
+ * themes and dynamically adjusts its layout when its bounds change.
+ */
 public class DominanteCardAdmin extends SurfaceCard {
     private final SurfaceCard topAccent;
     private final SurfaceCard codeBadge;
@@ -21,6 +30,14 @@ public class DominanteCardAdmin extends SurfaceCard {
     private final Button deleteButton;
     private boolean darkMode;
 
+    /**
+     * Constructs a new admin dominante card.
+     *
+     * @param onEdit   runnable invoked when the edit button is clicked
+     * @param onDelete runnable invoked when the user confirms deletion through the
+     *                 confirmation modal
+     * @param window   the parent BaseWindow used to display the confirmation modal
+     */
     public DominanteCardAdmin(Runnable onEdit, Runnable onDelete, BaseWindow window) {
         super(0, 0, 100, 100, Color.WHITE, new Color(226, 230, 238), 12);
         this.darkMode = true;
@@ -101,6 +118,21 @@ public class DominanteCardAdmin extends SurfaceCard {
         editButton.setBounds(width - 174, 16, 74, 28);
     }
 
+    /**
+     * Populates the card fields with the given dominante data.
+     * The displayed code is trimmed to at most three uppercase characters.
+     * If any string argument is null or blank a sensible fallback is shown.
+     *
+     * @param code         the dominante code (will be truncated to 3 characters)
+     * @param name         the dominante display name
+     * @param desc         a short description of the dominante
+     * @param sessions     the number of sessions associated with this dominante
+     * @param capacity     the total student capacity across sessions
+     * @param inscriptions the number of students currently enrolled
+     * @param fillRate     the fill rate as a percentage (0-100)
+     * @param accentColor  the colour used for the top accent bar and code badge;
+     *                     if null a default purple is used
+     */
     public void setData(String code, String name, String desc, int sessions, int capacity, int inscriptions, int fillRate,
             Color accentColor) {
         String safeCode = code == null || code.isBlank() ? "--" : code.trim().toUpperCase();
@@ -120,6 +152,13 @@ public class DominanteCardAdmin extends SurfaceCard {
         invalidate();
     }
 
+    /**
+     * Toggles the visual theme between dark mode and light mode for this card
+     * and all its child components. Updates background, border, text, and button
+     * colours accordingly.
+     *
+     * @param dark true to apply the dark theme, false for the light theme
+     */
     public void setDarkMode(boolean dark) {
         this.darkMode = dark;
         if (darkMode) {

@@ -11,8 +11,12 @@ import event.UiEvent;
 import main.BaseComp;
 
 /**
- * Champ de recherche texte léger avec saisie clavier et callback de changement.
- * Conçu pour filtrer des listes en temps réel sans dépendre d'un composant externe.
+ * A lightweight text search input field with keyboard input handling and a
+ * change callback. Designed for real-time list filtering without external
+ * dependencies. The component renders a rounded rectangle with a configurable
+ * border that highlights on focus, displays placeholder text when empty, and
+ * draws a blinking caret when focused. It supports customisation of all
+ * colours and fires a change notification on every text modification.
  */
 public class SearchField extends BaseComp {
     private static final int PADDING_X = 12;
@@ -28,6 +32,17 @@ public class SearchField extends BaseComp {
     private Font font = new Font("Dialog", Font.PLAIN, 14);
     private Runnable onChange = () -> {};
 
+    /**
+     * Constructs a search field with the given position, dimensions, and
+     * placeholder text.
+     *
+     * @param x           the x-coordinate of the field
+     * @param y           the y-coordinate of the field
+     * @param width       the width of the field
+     * @param height      the height of the field
+     * @param placeholder the placeholder text displayed when the field is empty;
+     *                    null is treated as an empty string
+     */
     public SearchField(int x, int y, int width, int height, String placeholder) {
         super(null);
         this.placeholder = placeholder == null ? "" : placeholder;
@@ -110,20 +125,46 @@ public class SearchField extends BaseComp {
         }
     }
 
+    /**
+     * Returns the current text content of the search field.
+     *
+     * @return the current text (never null)
+     */
     public String getText() {
         return text;
     }
 
+    /**
+     * Sets the text content of the search field and fires the change callback.
+     *
+     * @param text the new text; null is treated as an empty string
+     */
     public void setText(String text) {
         this.text = text == null ? "" : text;
         fireChange();
         invalidate();
     }
 
+    /**
+     * Registers a callback to be invoked whenever the text content changes.
+     *
+     * @param onChange the runnable to invoke on each change; null clears the
+     *                 callback
+     */
     public void setOnChange(Runnable onChange) {
         this.onChange = onChange == null ? () -> {} : onChange;
     }
 
+    /**
+     * Configures the colours of the search field. Any parameter that is null
+     * will not be updated, allowing partial colour customisation.
+     *
+     * @param background       the background colour of the field
+     * @param border           the border colour when the field is not focused
+     * @param focusBorder      the border colour when the field is focused
+     * @param textColor        the colour of the entered text
+     * @param placeholderColor the colour of the placeholder text
+     */
     public void setColors(Color background, Color border, Color focusBorder, Color textColor, Color placeholderColor) {
         if (background != null) {
             this.background = background;
@@ -149,6 +190,12 @@ public class SearchField extends BaseComp {
         }
     }
 
+    /**
+     * Returns the current text content. This is an alias for {@link #getText()}
+     * provided for convenience.
+     *
+     * @return the current text (never null)
+     */
     public String getCurrentText() {
         return text;
     }

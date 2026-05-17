@@ -6,6 +6,14 @@ import java.util.List;
 
 import event.UiEvent;
 
+/**
+ * A colour picker component that displays a grid of predefined colour
+ * swatches. Users can click a swatch to select it, and the selected swatch
+ * is visually highlighted with a white border. The component provides the
+ * selected colour as a {@link Color} object. It is built as a transparent
+ * {@link SurfaceCard} containing clickable coloured squares arranged in a
+ * 5-column grid.
+ */
 public class ColorPicker extends SurfaceCard {
     private String selectedColor;
     private final List<SurfaceCard> colorSquares = new ArrayList<>();
@@ -15,6 +23,18 @@ public class ColorPicker extends SurfaceCard {
             "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#d946ef"
     };
 
+    /**
+     * Constructs a colour picker at the given position and size, pre-selecting
+     * the specified initial colour (or the first colour in the palette if null
+     * or blank).
+     *
+     * @param x             the x-coordinate of the picker
+     * @param y             the y-coordinate of the picker
+     * @param width         the width of the picker
+     * @param height        the height of the picker
+     * @param initialColor  the hex colour string (e.g. "#ef4444") to preselect;
+     *                      may be null or blank to use the default
+     */
     public ColorPicker(int x, int y, int width, int height, String initialColor) {
         super(x, y, width, height, new Color(0, 0, 0, 0), new Color(0, 0, 0, 0), 0);
 
@@ -50,6 +70,13 @@ public class ColorPicker extends SurfaceCard {
         setSelectedColor(initStr);
     }
 
+    /**
+     * Programmatically selects a colour swatch by its hex string. The
+     * selected swatch is highlighted with a white border.
+     *
+     * @param color the hex colour string to select (e.g. "#3b82f6"); must
+     *              match one of the predefined palette entries
+     */
     public void setSelectedColor(String color) {
         this.selectedColor = color;
         for (int i = 0; i < colors.length; i++) {
@@ -61,6 +88,12 @@ public class ColorPicker extends SurfaceCard {
         }
     }
 
+    /**
+     * Returns the currently selected colour as a {@link Color} instance.
+     *
+     * @return the selected colour; falls back to the first palette colour on
+     *         any decoding error
+     */
     public Color getSelectedColor() {
         try {
             return Color.decode(selectedColor);

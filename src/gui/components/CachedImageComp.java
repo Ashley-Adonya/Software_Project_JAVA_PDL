@@ -25,6 +25,23 @@ import javax.swing.SwingUtilities;
 
 import main.BaseComp;
 
+/**
+ * Custom UI component that loads, caches, and renders images from local file paths or URLs.
+ * Extends BaseComp to integrate with the custom rendering pipeline.
+ * <p>
+ * Images are loaded asynchronously on a dedicated daemon thread to avoid blocking the UI.
+ * A static in-memory cache (ConcurrentHashMap) ensures that the same image source is
+ * only loaded once and reused across all CachedImageComp instances.
+ * <p>
+ * Key features:
+ * - Async image loading with a single-threaded executor
+ * - Static image cache shared across all instances
+ * - Support for local file paths (with multi-directory fallback resolution) and web URLs
+ * - Alpha transparency control for fade effects
+ * - Alt text rendering when image is unavailable or still loading
+ * - Text wrapping for alt text within component bounds
+ * - Graceful degradation: empty placeholder with rounded corners on load failure
+ */
 public class CachedImageComp extends BaseComp {
     private static final Map<String, Image> CACHE = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> LOADING = new ConcurrentHashMap<>();
@@ -39,10 +56,32 @@ public class CachedImageComp extends BaseComp {
     private String source;
     private float alpha = 1.0f;
 
+    /**
+     * Creates a cached image component with the given source, position, and size.
+     * Uses the default alt text "Image indisponible" when the image is unavailable.
+     *
+     * @param source the image source path (local file path or URL)
+     * @param x      the x-coordinate of the component bounds
+     * @param y      the y-coordinate of the component bounds
+     * @param width  the width of the component in pixels
+     * @param height the height of the component in pixels
+     */
     public CachedImageComp(String source, int x, int y, int width, int height) {
         this(source, x, y, width, height, "Image indisponible");
     }
 
+    /**
+     * Creates a cached image component with the given source, position, size, and alt text.
+     * The image is loaded asynchronously from the provided source. If the source is already
+     * cached from a previous load, it is used immediately.
+     *
+     * @param source the image source path (local file path or URL)
+     * @param x      the x-coordinate of the component bounds
+     * @param y      the y-coordinate of the component bounds
+     * @param width  the width of the component in pixels
+     * @param height the height of the component in pixels
+     * @param altText the alternative text displayed when the image cannot be loaded
+     */
     public CachedImageComp(String source, int x, int y, int width, int height, String altText) {
         super(null);
         this.altText = altText == null ? "Image indisponible" : altText;
@@ -50,14 +89,33 @@ public class CachedImageComp extends BaseComp {
         setImageSource(source);
     }
 
+    /**
+     * Sets the image source to a local file path.
+     * Delegates to {@link #setImageSource(String)} for loading and caching.
+     *
+     * @param path the local file path to the image
+     */
     public void setImagePath(String path) {
         setImageSource(path);
     }
 
+    /**
+     * Sets the image source to a URL.
+     * Delegates to {@link #setImageSource(String)} for loading and caching.
+     *
+     * @param url the web URL of the image (http/https)
+     */
     public void setImageUrl(String url) {
         setImageSource(url);
     }
 
+    /**
+     * Sets the image source to the given path or URL and initiates async loading.
+     * If the source is already in the cache, the cached image is used immediately.
+     * Otherwise, an async load is triggered via the shared single-threaded executor.
+     *
+     * @param source the image source (local file path or http/https URL)
+     */
     public void setImageSource(String source) {
         this.source = source;
         Image cached = CACHE.get(source);
@@ -71,24 +129,57 @@ public class CachedImageComp extends BaseComp {
         invalidate();
     }
 
+    /**
+     * Sets the alternative text displayed when the image cannot be loaded.
+     * If the text is null or blank, a default "Image indisponible" is used.
+     *
+     * @param text the alt text to display; null or blank resets to default
+     */
     public void setAltText(String text) {
         this.altText = text == null || text.isBlank() ? "Image indisponible" : text;
         invalidate();
     }
 
+    /**
+     * Returns the current image source path or URL.
+     *
+     * @return the source string as passed to the constructor or setImageSource
+     */
     public String getSource() {
         return this.source;
     }
 
+    /**
+     * Returns the current alternative text.
+     *
+     * @return the alt text string, never null (defaults to "Image indisponible")
+     */
     public String getAltText() {
         return this.altText;
     }
 
+    /**
+     * Sets the alpha transparency level for the rendered image.
+     * Values outside the [0.0, 1.0] range are clamped.
+     * A value of 1.0 is fully opaque, 0.0 is fully transparent.
+     *
+     * @param alpha the alpha value between 0.0 (transparent) and 1.0 (opaque)
+     */
     public void setAlpha(float alpha) {
         this.alpha = Math.max(0.0f, Math.min(1.0f, alpha));
         invalidate();
     }
 
+    /**
+     * Renders the component with custom graphics. If the image is loaded and cached,
+     * it is drawn with bilinear interpolation and the configured alpha transparency.
+     * If no image is available or loading is pending, a rounded rectangle placeholder
+     * is drawn with the alt text wrapped to fit within the component bounds.
+     * Before rendering, a final cache check is performed in case the async load
+     * completed just before this render call.
+     *
+     * @param graphics the Graphics context to render into; cast to Graphics2D for rendering hints
+     */
     @Override
     public void customGraphics(Graphics graphics) {
         if (this.image == null && this.source != null) {

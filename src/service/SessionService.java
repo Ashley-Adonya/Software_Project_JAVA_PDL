@@ -21,12 +21,21 @@ public class SessionService {
     private final CampaignDAO campaignDAO;
     private final RegistrationDAO registrationDAO;
 
+    /**
+     * Constructs a new SessionService with default DAO implementations.
+     */
     public SessionService() {
         this.sessionDAO = new SessionDAO();
         this.campaignDAO = new CampaignDAO();
         this.registrationDAO = new RegistrationDAO();
     }
 
+    /**
+     * Creates a new session after validating its fields and checking that the campaign is in PREPARATION status.
+     *
+     * @param session the session to create
+     * @return ServiceResult indicating success with the new ID, or failure
+     */
     public ServiceResult createSession(SessionSlot session) {
         String validation = validateSession(session);
         if (validation != null) {
@@ -50,6 +59,12 @@ public class SessionService {
         return ServiceResult.ok("Session creee (id=" + id + ")");
     }
 
+    /**
+     * Updates an existing session after validation, only allowed if the campaign is in PREPARATION status.
+     *
+     * @param session the session with updated data (must have a valid ID)
+     * @return ServiceResult indicating success or failure
+     */
     public ServiceResult updateSession(SessionSlot session) {
         String validation = validateSession(session);
         if (validation != null) {
@@ -75,6 +90,12 @@ public class SessionService {
         return ServiceResult.ok("Session modifiee");
     }
 
+    /**
+     * Deletes a session if it exists and its campaign is in PREPARATION status.
+     *
+     * @param sessionId the session ID to delete
+     * @return ServiceResult indicating success or failure
+     */
     public ServiceResult deleteSession(int sessionId) {
         SessionSlot existing = sessionDAO.findById(sessionId);
         if (existing == null) {
@@ -94,6 +115,13 @@ public class SessionService {
         return ServiceResult.ok("Session supprimee");
     }
 
+    /**
+     * Updates the capacity of a session if the new capacity is not lower than currently allocated registrations.
+     *
+     * @param sessionId   the session ID
+     * @param newCapacity the new capacity value
+     * @return true if the capacity was updated, false otherwise
+     */
     public boolean updateCapacity(int sessionId, int newCapacity) {
         if (newCapacity < 0) return false;
         SessionSlot existing = sessionDAO.findById(sessionId);
@@ -111,22 +139,55 @@ public class SessionService {
         return false;
     }
 
+    /**
+     * Lists all sessions for a given campaign, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @return list of session slots
+     */
     public List<SessionSlot> listByCampaign(int campaignId) {
         return CacheManager.getOrLoad("session:campaign:" + campaignId, () -> sessionDAO.findByCampaign(campaignId));
     }
 
+    /**
+     * Searches sessions by campaign, dominante name pattern, and time range, with caching.
+     *
+     * @param campaignId        the campaign ID
+     * @param dominanteNameLike a partial dominante name to match
+     * @param fromMinute        start of the time range in minutes from midnight
+     * @param toMinute          end of the time range in minutes from midnight
+     * @return list of matching session slots
+     */
     public List<SessionSlot> searchSessions(int campaignId, String dominanteNameLike, int fromMinute, int toMinute) {
         String key = "session:search:" + campaignId + ":" + safe(dominanteNameLike) + ":" + fromMinute + ":" + toMinute;
         return CacheManager.getOrLoad(key, () -> sessionDAO.searchByDominanteNameAndTime(campaignId, dominanteNameLike, fromMinute, toMinute));
     }
 
+    /**
+     * Retrieves a map of session IDs to allocated registration counts for a campaign, with caching.
+     *
+     * @param campaignId the campaign ID
+     * @return map of session ID to allocation count
+     */
     public Map<Integer, Integer> countAllocationsBySessionForCampaign(int campaignId) {
         return CacheManager.getOrLoad("session:allocations:" + campaignId, () -> sessionDAO.countBySessionForCampaign(campaignId));
     }
 
+    /**
+     * Sanitizes a string value for cache key usage (trims and uppercases, or returns empty string if null).
+     *
+     * @param value the raw string value
+     * @return a sanitized non-null string
+     */
     private String safe(String value) {
         return value == null ? "" : value.trim().toUpperCase();
     }
+    /**
+     * Validates a session slot's fields (campaign, dominante, capacity, schedule).
+     *
+     * @param session the session to validate
+     * @return an error message if validation fails, or null if valid
+     */
     private String validateSession(SessionSlot session) {
         if (session == null) {
             return "Session vide";
@@ -146,6 +207,13 @@ public class SessionService {
         return null;
     }
 
+    /**
+     * Checks if a time interval falls within the allowed time windows (morning 08:30-12:30 or afternoon 13:30-17:30).
+     *
+     * @param startMinute start time in minutes from midnight
+     * @param endMinute   end time in minutes from midnight
+     * @return true if the interval is within an allowed window, false otherwise
+     */
     private boolean isInsideAllowedWindow(int startMinute, int endMinute) {
         boolean morning = startMinute >= 510 && endMinute <= 750;
         boolean afternoon = startMinute >= 810 && endMinute <= 1050;

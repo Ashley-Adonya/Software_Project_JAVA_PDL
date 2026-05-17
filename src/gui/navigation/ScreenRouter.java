@@ -9,11 +9,22 @@ import service.AuthService;
 import java.util.Locale;
 
 /**
- * Gestionnaire de navigation centralisé pour l'application.
- * Assure la transition entre les différents écrans (Login, AdminDashboard, StudentDashboard)
- * en fonction du rôle de l'utilisateur authentifié.
- * Gère l'initialisation de la fenêtre principale et les appels de redimensionnement.
- * 
+ * Centralized navigation manager for the application.
+ * Handles screen transitions between Login, AdminDashboard, and StudentDashboard
+ * based on the authenticated user's role.
+ * Manages the main window initialization and delegates resize events to the active screen.
+ * <p>
+ * The router is the entry point for all screen lifecycle management. It creates screen
+ * instances, calls mount() when switching screens, and propagates window resize events
+ * to the currently active screen via a registered resize listener.
+ * <p>
+ * Key features:
+ * - Role-based routing (admin vs student)
+ * - Graceful fallback to login on unrecognized roles
+ * - Automatic resize event delegation to the active screen
+ * - Timing instrumentation for screen transitions (logged to console)
+ * - Error recovery: returns to login if a screen fails to mount
+ *
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
  */
@@ -22,6 +33,13 @@ public class ScreenRouter {
     private final AuthService authService;
     private AppScreen current;
 
+    /**
+     * Constructs the screen router and registers a resize listener on the window.
+     * Whenever the window is resized, the router delegates the resize event to the
+     * currently active AppScreen to keep the layout responsive.
+     *
+     * @param window the main application window to manage navigation for
+     */
     public ScreenRouter(BaseWindow window) {
         this.window = window;
         this.authService = new AuthService();
@@ -32,6 +50,13 @@ public class ScreenRouter {
         });
     }
 
+    /**
+     * Navigates to the login screen by creating a new LoginScreen instance
+     * and setting it as the active screen. The LoginScreen is configured with
+     * an authentication callback (onAuthenticated) that handles role-based
+     * redirection after successful login.
+     * This method is also used as the logout callback from dashboard screens.
+     */
     public void showLogin() {
         System.out.println("[ScreenRouter] showLogin()");
         setCurrent(new LoginScreen(window, this::onAuthenticated));

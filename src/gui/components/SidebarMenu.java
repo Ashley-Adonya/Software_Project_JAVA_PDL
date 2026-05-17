@@ -15,11 +15,30 @@ import components.Button;
 import components.Label;
 import main.BaseComp;
 
+/**
+ * A sidebar navigation menu that provides the primary application navigation
+ * structure. It displays an application logo, user information (name, role,
+ * avatar with initials), a list of navigable items, and buttons for theme
+ * toggling and logout. The active item is highlighted, and when an item is
+ * selected the registered callback is invoked with the item's key. The
+ * sidebar supports both dark and light colour themes.
+ */
 public class SidebarMenu extends SurfaceCard {
+    /**
+     * Represents a single navigation item in the sidebar with a unique key
+     * and a human-readable label.
+     */
     public static class Item {
         private final String key;
         private final String label;
 
+        /**
+         * Constructs a navigation item.
+         *
+         * @param key   a unique identifier for this item, used for active-state
+         *              tracking and callback dispatch
+         * @param label the display text shown in the sidebar
+         */
         public Item(String key, String label) {
             this.key = key;
             this.label = label;
@@ -39,6 +58,20 @@ public class SidebarMenu extends SurfaceCard {
     private String activeKey;
     private boolean darkMode;
 
+    /**
+     * Constructs the sidebar menu with user information and navigation items.
+     *
+     * @param roleLabel        a label describing the user's role (e.g. "Admin")
+     * @param userName         the display name of the current user
+     * @param items            the list of navigation items to display; may be null
+     * @param initialActiveKey the key of the item that should be initially
+     *                         highlighted
+     * @param onSelect         consumer invoked with the item key when a navigation
+     *                         item is selected
+     * @param onLogout         runnable invoked when the logout button is clicked
+     * @param onThemeToggle    runnable invoked when the theme toggle button is
+     *                         clicked
+     */
     public SidebarMenu(String roleLabel, String userName, List<Item> items, String initialActiveKey, Consumer<String> onSelect,
             Runnable onLogout, Runnable onThemeToggle) {
         super(0, 0, 220, 100, new Color(251, 252, 254), new Color(226, 230, 238), 0);
@@ -141,6 +174,12 @@ public class SidebarMenu extends SurfaceCard {
         logoutButton.setBounds(14, Math.max(14, height - 46), width - 28, 32);
     }
 
+    /**
+     * Marks the given item key as active and visually updates all navigation
+     * buttons to reflect the new active state.
+     *
+     * @param activeKey the key of the item to activate
+     */
     public void setActiveKey(String activeKey) {
         this.activeKey = activeKey;
         for (Map.Entry<String, Button> entry : byKey.entrySet()) {
@@ -157,6 +196,14 @@ public class SidebarMenu extends SurfaceCard {
         invalidate();
     }
 
+    /**
+     * Toggles the visual theme between dark mode and light mode for all
+     * sidebar elements including the background, labels, navigation items,
+     * logout button, and theme toggle button. The active item highlight is
+     * re-applied after the theme change.
+     *
+     * @param dark true to apply the dark theme, false for the light theme
+     */
     public void setDarkMode(boolean dark) {
         this.darkMode = dark;
         if (dark) {

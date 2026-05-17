@@ -14,20 +14,43 @@ import model.SessionSlot;
 import service.RegistrationService;
 
 /**
- * Modale de gestion d'une session (capacité, étudiants inscrits).
- * Permet à l'admin de modifier la capacité et de visualiser les inscrits.
+ * Modal dialog for managing an individual session's capacity and viewing
+ * registered students.
+ * <p>
+ * Displays session metadata (associated dominante, title, date, time range,
+ * room, and current occupancy expressed as allocated/capacity). Allows the
+ * administrator to update the session capacity via a text input and an
+ * "OK" button. A scrollable area is provided for listing enrolled students,
+ * though the actual student list population is delegated to the caller.
+ * </p>
  */
 public class AdminManageSessionModal {
     private final AdminDashboardView view;
     
+    /**
+     * Constructs a session management modal bound to the given dashboard view.
+     *
+     * @param view the parent {@link AdminDashboardView} used to access the session
+     *             service, dominante service, and window reference
+     */
     public AdminManageSessionModal(AdminDashboardView view) {
         this.view = view;
     }
     
     /**
-     * Ouvre la modale de gestion pour une session donnée.
-     * @param s       La session à gérer
-     * @param allocated Nombre d'étudiants actuellement inscrits
+     * Opens a modal dialog for managing the given session slot.
+     * <p>
+     * The dialog shows the session's dominante name, title, date, time range,
+     * room, and current occupancy (allocated/capacity). An editable capacity
+     * field allows the admin to update the maximum number of participants.
+     * A scroll area for enrolled students is prepared but its content must
+     * be populated externally. If the session is {@code null} the method does
+     * nothing.
+     * </p>
+     *
+     * @param s         the session slot to manage; may be {@code null} in which
+     *                  case no action is taken
+     * @param allocated the current number of students registered (allocated) to this session
      */
     public void openManageSessionModal(SessionSlot s, int allocated) {
         if (s == null) return;

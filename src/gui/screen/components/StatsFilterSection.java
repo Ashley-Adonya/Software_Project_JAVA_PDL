@@ -10,6 +10,21 @@ import gui.components.SurfaceCard;
 import components.Label;
 import components.ScrollView;
 
+/**
+ * Search and filter section within the statistics panel that allows users
+ * to search for sessions and students by name, login, or session title.
+ * Results are displayed in a scrollable list below the search field.
+ *
+ * <p><b>Key features:</b></p>
+ * <ul>
+ *   <li>Real-time search filtering as the user types in the search field</li>
+ *   <li>Searches both session titles/dominante names and student names/logins</li>
+ *   <li>Displays results with type indicators: "[S]" for sessions, "[E]" for students</li>
+ *   <li>Shows an empty-state hint when no query is entered and a no-results message when
+ *       the search yields no matches</li>
+ *   <li>Supports dark/light mode theming and window resize events</li>
+ * </ul>
+ */
 public class StatsFilterSection {
     private final StatisticsService statsService;
     private final SurfaceCard container;
@@ -44,8 +59,21 @@ public class StatsFilterSection {
         container.addChild(title); container.addChild(searchField); container.addChild(resultsScroll);
     }
 
+    /**
+     * Returns the root UI component of this filter section, a {@code SurfaceCard}
+     * containing the title, search field, and results scroll area.
+     *
+     * @return the root {@link SurfaceCard} instance
+     */
     public SurfaceCard getRoot() { return container; }
 
+    /**
+     * Updates the filter section with the current campaign and promo context.
+     * These values are used by the search function to query the correct dataset.
+     *
+     * @param campaignId the numerical identifier of the active campaign
+     * @param promo      the promo (class year) string to filter by
+     */
     public void refresh(int campaignId, String promo) {
         this.campaignId = campaignId;
         this.promo = promo;
@@ -133,12 +161,26 @@ public class StatsFilterSection {
         return card;
     }
 
+    /**
+     * Switches the section between dark and light colour themes.
+     * Updates the container background and border colour.
+     *
+     * @param dark {@code true} for dark mode, {@code false} for light mode
+     */
     public void setDarkMode(boolean dark) {
         darkMode = dark;
         container.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
         container.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
     }
 
+    /**
+     * Adjusts the layout when the parent container is resized. Positions the
+     * results scroll area to fill the remaining vertical space below the title
+     * and search field.
+     *
+     * @param w the new width in pixels
+     * @param h the new height in pixels
+     */
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
         resultsScroll.setBounds(16, 80, w - 32, h - 88);

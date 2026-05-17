@@ -12,26 +12,50 @@ import service.DominanteService;
 import service.ServiceResult;
 
 /**
- * Modale de création et édition des dominantes.
- * Interface centralisée pour gérer les domaines d'études.
+ * Manages modal dialogs for creating and editing study domains (dominantes).
+ * <p>
+ * Provides a centralised form for capturing the code, name, description,
+ * responsible person, and an associated colour for each dominante. The colour
+ * is selected via a {@link gui.components.ColorPicker}. Persistence is handled
+ * through {@link service.DominanteService}, and upon success the current dashboard
+ * section is automatically refreshed to reflect the changes.
+ * </p>
  */
 public class AdminDominanteModal {
     private final AdminDashboardView view;
     
+    /**
+     * Constructs a dominante modal manager tied to the given dashboard view.
+     *
+     * @param view the parent {@link AdminDashboardView} used to access services,
+     *             the window reference, and to trigger section refresh
+     */
     public AdminDominanteModal(AdminDashboardView view) {
         this.view = view;
     }
     
     /**
-     * Ouvre la modale de création d'une nouvelle dominante.
+     * Opens a modal dialog for creating a new dominante.
+     * <p>
+     * The form fields are initially empty except for the colour picker which
+     * defaults to blue (#3B82F6). The new dominante is automatically marked as
+     * active. Upon successful creation the active dashboard section is refreshed.
+     * </p>
      */
     public void openCreateDominanteModal() {
         openDominanteForm(null);
     }
     
     /**
-     * Ouvre la modale d'édition d'une dominante existante.
-     * @param d La dominante à modifier
+     * Opens a modal dialog for editing an existing dominante.
+     * <p>
+     * The form is pre-populated with the current dominante's values (code, name,
+     * description, responsible name, and colour). Upon successful update the
+     * active dashboard section is refreshed. If the provided dominante is
+     * {@code null} the method does nothing.
+     * </p>
+     *
+     * @param d the dominante to edit; may be {@code null} in which case no action is taken
      */
     public void openEditDominanteModal(Dominante d) {
         if (d != null) openDominanteForm(d);

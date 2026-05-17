@@ -19,6 +19,22 @@ import gui.navigation.AppScreen;
 import model.User;
 import service.AuthService;
 
+/**
+ * Login screen providing authentication for the application.
+ * Implements the AppScreen interface and renders a centered login card
+ * with email/password fields, theme toggle, and async authentication.
+ * <p>
+ * On successful authentication, the authenticated User is passed to
+ * the provided callback which is typically handled by ScreenRouter
+ * to redirect to the appropriate dashboard based on the user role.
+ * <p>
+ * Key features:
+ * - Email and password form with validation
+ * - Dark/light theme toggle
+ * - Asynchronous login via AuthService in a background thread
+ * - Responsive layout that adapts to window size
+ * - Visual feedback for success/error states
+ */
 public class LoginScreen implements AppScreen {
     private static final Color PAGE_BG = new Color(14, 18, 26);
     private static final Color CARD_BG = new Color(22, 28, 39);
@@ -45,6 +61,16 @@ public class LoginScreen implements AppScreen {
     private boolean darkTheme = true;
     private boolean loginInProgress;
 
+    /**
+     * Constructs the login screen with the parent window and authentication callback.
+     * Initializes all UI components including the app logo, card layout, form inputs,
+     * login button, and theme toggle. All components are created with initial bounds
+     * that are recalculated during onResize().
+     *
+     * @param window          the main application window for rendering and layout management
+     * @param onAuthenticated callback invoked with the authenticated User on successful login;
+     *                        typically used by ScreenRouter to navigate to the appropriate dashboard
+     */
     public LoginScreen(BaseWindow window, Consumer<User> onAuthenticated) {
         this.window = window;
         this.authService = new AuthService();
@@ -148,11 +174,22 @@ public class LoginScreen implements AppScreen {
 
     private final LoginLayout layout = new LoginLayout();
 
+    /**
+     * Mounts the login screen by delegating to the internal LoginLayout.
+     * Clears existing children from the content pane, adds the logo, subtitle,
+     * and login card, then triggers a responsive layout pass.
+     * Called by ScreenRouter when this screen becomes active.
+     */
     @Override
     public void mount() {
         layout.mount();
     }
 
+    /**
+     * Handles window resize events by delegating to the internal LoginLayout.
+     * Recalculates all component positions and dimensions to maintain a
+     * centered, responsive layout that adapts to window width and height.
+     */
     @Override
     public void onResize() {
         layout.onResize();

@@ -19,6 +19,21 @@ import service.RegistrationService;
 import service.SessionService;
 import service.StatisticsService;
 
+/**
+ * Main orchestrator for the administrator dashboard interface.
+ * <p>
+ * This class is the central hub of the admin UI. It:
+ * <ul>
+ *   <li>Initialises all services, resolvers, and section managers</li>
+ *   <li>Creates the sidebar navigation, page header, and refresh button</li>
+ *   <li>Hosts all section components (dashboard root, dominantes list,
+ *       sessions list, campaign form, statistics panel)</li>
+ *   <li>Manages modal factories for sessions, dominantes, student registration,
+ *       and session management</li>
+ *   <li>Handles responsive layout, dark/light theme toggling, and data refresh</li>
+ * </ul>
+ * </p>
+ */
 public class AdminDashboardView {
     private final BaseWindow window;
     private final User user;
@@ -50,6 +65,21 @@ public class AdminDashboardView {
     private int mainW = 320;
     private Color PAGE_BG = new Color(14, 18, 26);
 
+    /**
+     * Constructs the full admin dashboard view.
+     * <p>
+     * Initialises all services ({@link CampaignService}, {@link SessionService},
+     * {@link DominanteService}, {@link StatisticsService}, {@link RegistrationService}),
+     * the {@link CampaignResolver}, and the {@link AdminSectionManager}. Builds the
+     * sidebar with navigation items, creates all section components (dashboard root,
+     * session list, campaign form, dominante list, stats panel), and wires up the
+     * modal managers and their callbacks (edit, manage, create).
+     * </p>
+     *
+     * @param window   the application window that this dashboard is rendered into
+     * @param user     the currently logged-in administrator user
+     * @param onLogout callback to invoke when the user clicks the logout action
+     */
     public AdminDashboardView(BaseWindow window, User user, Runnable onLogout) {
         this.window = window;
         this.user = user;
@@ -92,6 +122,17 @@ public class AdminDashboardView {
         dominanteListComponent.onEdit(d -> dominanteModals.openEditDominanteModal(d));
     }
 
+    /**
+     * Mounts the dashboard onto the application window.
+     * <p>
+     * Configures the style manager with the current background colour, clears
+     * existing children, and adds the sidebar, header, refresh button, and
+     * section host container. Calls {@link #mountSections()} to populate the
+     * section host, then triggers an initial data refresh and applies the
+     * current theme and responsive layout. Finally, applies section visibility
+     * and refreshes the active section content.
+     * </p>
+     */
     public void mount() {
         BaseComp content = window.getContent();
         content.setStyleManager(new style.StyleManager(PAGE_BG, 0, content.getWidth(), content.getHeight(), 0, 0, "absolute"));
@@ -110,6 +151,16 @@ public class AdminDashboardView {
         window.requestRenderIfNeeded();
     }
 
+    /**
+     * Recalculates the layout of all dashboard components when the window is resized.
+     * <p>
+     * Computes the sidebar width (between 210 and 248 px, or a quarter of the window
+     * width), positions the header and refresh button to the right of the sidebar,
+     * and resizes the section host to fill the remaining space. Delegates resize
+     * to each section component (dashboard root, dominante list, session list,
+     * campaign form, stats panel) with the computed main width.
+     * </p>
+     */
     public void onResize() {
         BaseComp content = window.getContent();
         int w = content.getWidth(), h = content.getHeight();
@@ -138,6 +189,17 @@ public class AdminDashboardView {
     void refreshCampagne() { campaignFormComponent.refreshFrom(activeCampaign); }
     void refreshStats() { statsPanelComponent.refresh(activeCampaign == null ? -1 : activeCampaign.getId(), user != null ? user.getPromo() : null); }
 
+    /**
+     * Displays a confirmation modal dialog for destructive actions.
+     * <p>
+     * The modal shows the given warning message and provides confirm/cancel
+     * buttons. The provided callback is executed only when the user confirms
+     * the action.
+     * </p>
+     *
+     * @param message   the confirmation message to display
+     * @param onConfirm the action to execute when the user confirms deletion
+     */
     public void showConfirmDeleteModal(String message, Runnable onConfirm) {
         ConfirmDeleteModal modal = new ConfirmDeleteModal(window);
         modal.setMessage(message);
@@ -165,16 +227,66 @@ public class AdminDashboardView {
         sectionHost.addChild(sessionListComponent.getRoot()); sectionHost.addChild(campaignFormComponent.getRoot());
         sectionHost.addChild(statsPanelComponent.getRoot()); sectionsMounted = true;
     }
+    /**
+     * Returns the currently resolved active campaign.
+     *
+     * @return the active {@link Campaign} resolved by {@link CampaignResolver},
+     *         or {@code null} if no campaign is available
+     */
     public Campaign getActiveCampaign() { return activeCampaign; }
+    /**
+     * Returns the currently logged-in administrator user.
+     *
+     * @return the {@link User} instance representing the logged-in administrator
+     */
     public User getUser() { return user; }
+    /**
+     * Returns the application window into which this dashboard is rendered.
+     *
+     * @return the {@link BaseWindow} instance used for adding components and opening modals
+     */
     public BaseWindow getWindow() { return window; }
+    /**
+     * Returns the campaign service instance.
+     *
+     * @return the {@link CampaignService} used for campaign CRUD operations
+     */
     public CampaignService getCampaignService() { return campaignService; }
+    /**
+     * Returns the session service instance.
+     *
+     * @return the {@link SessionService} used for session slot CRUD operations
+     */
     public SessionService getSessionService() { return sessionService; }
+    /**
+     * Returns the dominante service instance.
+     *
+     * @return the {@link DominanteService} used for study domain CRUD operations
+     */
     public DominanteService getDominanteService() { return dominanteService; }
+    /**
+     * Returns the registration service instance.
+     *
+     * @return the {@link RegistrationService} used for student registration operations
+     */
     public RegistrationService getRegistrationService() { return registrationService; }
+    /**
+     * Returns the statistics service instance.
+     *
+     * @return the {@link StatisticsService} used for aggregating dashboard statistics and KPIs
+     */
     public StatisticsService getStatisticsService() { return statisticsService; }
+    /**
+     * Returns the registration DAO instance.
+     *
+     * @return the {@link dao.RegistrationDAO} used for direct database access to registrations
+     */
     public dao.RegistrationDAO getRegistrationDAO() { return registrationDAO; }
     private String displayName() { return user == null ? "" : (user.getFullName() != null && !user.getFullName().isBlank() ? user.getFullName() : user.getLogin() == null ? "" : user.getLogin()); }
     private void clearChildren(BaseComp p) { for (BaseComp c : new ArrayList<>(p.getChildrenList())) p.removeChild(c); }
+    /**
+     * Delegates to the {@link AdminSectionManager} to refresh the currently
+     * active section's data and request a re-render.
+     */
     void refreshActiveSection() { sectionManager.refreshActiveSection(); }
 }

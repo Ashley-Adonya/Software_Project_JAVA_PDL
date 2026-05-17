@@ -10,6 +10,20 @@ import components.Label;
 import components.ScrollView;
 import event.UiEvent;
 
+/**
+ * Section of the statistics panel that displays the distribution of students
+ * across all sessions for a given campaign. Each session is rendered as a
+ * clickable card showing its title, dominante, time slot, and fill rate.
+ *
+ * <p><b>Key features:</b></p>
+ * <ul>
+ *   <li>Arranges session cards in one or two columns depending on available width</li>
+ *   <li>Highlights fully booked sessions with a distinct warm colour scheme</li>
+ *   <li>Displays a textual fill-rate indicator (allocated / capacity + percentage)</li>
+ *   <li>Emits a callback when a session card is clicked, enabling drill-down navigation</li>
+ *   <li>Supports dark/light mode theming and window resize events</li>
+ * </ul>
+ */
 public class StatsSessionsSection {
     private final SurfaceCard container;
     private final Label title;
@@ -36,9 +50,27 @@ public class StatsSessionsSection {
         container.addChild(title); container.addChild(scroll);
     }
 
+    /**
+     * Returns the root UI component of this section, a {@code SurfaceCard}
+     * containing the title and the scrollable session card grid.
+     *
+     * @return the root {@link SurfaceCard} instance
+     */
     public SurfaceCard getRoot() { return container; }
+
+    /**
+     * Registers a callback invoked when a session card is clicked.
+     *
+     * @param cb a {@link Consumer} accepting the clicked {@link StatisticsService.SessionDetail}
+     */
     public void setOnSelectSession(Consumer<StatisticsService.SessionDetail> cb) { this.onSelectSession = cb; }
 
+    /**
+     * Switches the section between dark and light colour themes.
+     * Updates the container background, border colour, and title colour.
+     *
+     * @param dark {@code true} for dark mode, {@code false} for light mode
+     */
     public void setDarkMode(boolean dark) {
         darkMode = dark;
         container.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
@@ -47,6 +79,14 @@ public class StatsSessionsSection {
         container.invalidate();
     }
 
+    /**
+     * Rebuilds the session card grid from the provided statistics summary.
+     * Determines column count based on scroll width (2 columns above 700 px, 1 otherwise).
+     * Clears any existing content and repopulates with new cards, recalculating
+     * scroll height to fit all cards.
+     *
+     * @param s the {@link StatisticsService.StatsSummary} containing session detail data
+     */
     public void refresh(StatisticsService.StatsSummary s) {
         clearChildren(content);
         if (s.sessionDetails == null || s.sessionDetails.isEmpty()) {
@@ -100,6 +140,14 @@ public class StatsSessionsSection {
         scroll.setContentHeight(y + 20);
     }
 
+    /**
+     * Adjusts the layout when the parent container is resized. Positions the
+     * title at the top and expands the scrollable card area to fill the
+     * remaining vertical space.
+     *
+     * @param w the new width in pixels
+     * @param h the new height in pixels
+     */
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
         scroll.setBounds(0, 56, w, h - 56);

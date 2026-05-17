@@ -11,6 +11,20 @@ import main.BaseComp;
 import model.Campaign;
 import service.StatisticsService;
 
+/**
+ * Root dashboard landing page for the administrator interface.
+ * <p>
+ * Composes a scrollable view containing:
+ * <ul>
+ *   <li>A hero card displaying campaign name, promo, dates, and status</li>
+ *   <li>Four KPI cards showing sessions, dominantes, fill rate, and registered students</li>
+ *   <li>A shortcut card with quick-action buttons to navigate to other sections</li>
+ *   <li>An alert card listing contextual warnings and information</li>
+ * </ul>
+ * All subcomponents support dark/light theme toggling and respond dynamically
+ * to container resize events.
+ * </p>
+ */
 public class AdminDashboardRoot extends BaseComp {
 
     private SurfaceCard heroCard, kpiCard, shortcutCard, alertCard;
@@ -22,6 +36,15 @@ public class AdminDashboardRoot extends BaseComp {
     private BaseComp scrollContent;
     private final StatisticsService statisticsService;
 
+    /**
+     * Constructs the dashboard root view.
+     * <p>
+     * Immediately builds the full component tree (hero card, KPI cards, shortcut card,
+     * alert card, and note label) inside a scroll view.
+     * </p>
+     *
+     * @param statisticsService the service providing aggregated statistics for the KPI cards
+     */
     public AdminDashboardRoot(StatisticsService statisticsService) {
         super(null);
         this.statisticsService = statisticsService;
@@ -70,11 +93,34 @@ public class AdminDashboardRoot extends BaseComp {
         addChild(mainScroll);
     }
 
+    /**
+     * Registers callback actions for the four quick-action shortcut buttons.
+     * <p>
+     * Each callback is invoked when the corresponding shortcut button is clicked,
+     * allowing navigation to the Dominantes, Sessions, Campagne, or Stats sections.
+     * </p>
+     *
+     * @param onDom   runnable executed when the "Dominantes" shortcut is clicked
+     * @param onSess  runnable executed when the "Sessions" shortcut is clicked
+     * @param onCamp  runnable executed when the "Campagne" shortcut is clicked
+     * @param onStats runnable executed when the "Statistiques" shortcut is clicked
+     */
     public void setShortcutActions(Runnable onDom, Runnable onSess, Runnable onCamp, Runnable onStats) {
         goDominantes.setOnClick(onDom); goSessions.setOnClick(onSess);
         goCampagne.setOnClick(onCamp); goStats.setOnClick(onStats);
     }
 
+    /**
+     * Refreshes all visual dashboard components with data from the given campaign.
+     * <p>
+     * When a valid campaign is provided, the hero card is updated with its name, promo,
+     * dates, and status; the four KPI cards are populated with live statistics; and the
+     * alert container is regenerated via {@link AdminDashboardAlertManager#generateAlerts}.
+     * When the campaign is {@code null}, all values are reset to zero / placeholder text.
+     * </p>
+     *
+     * @param activeCampaign the currently active campaign, or {@code null} if none exists
+     */
     public void refreshDashboardRoot(Campaign activeCampaign) {
         if (subtitleLabel == null) return;
         if (activeCampaign == null) {
@@ -94,6 +140,16 @@ public class AdminDashboardRoot extends BaseComp {
         }
     }
 
+    /**
+     * Toggles the colour theme of all dashboard subcomponents between dark and light.
+     * <p>
+     * Affects the hero card, KPI cards, shortcut card, alert card, alert container,
+     * text labels, and the content background. Each component's background, border,
+     * and text colours are updated accordingly.
+     * </p>
+     *
+     * @param dark if {@code true} applies the dark theme; if {@code false} applies the light theme
+     */
     public void setDarkMode(boolean dark) {
         Color border = dark ? new Color(52, 63, 92) : new Color(226, 230, 238);
         if (heroCard != null) { heroCard.setBackground(dark ? new Color(20, 26, 38) : Color.WHITE); heroCard.setBorderColor(border); }
@@ -107,6 +163,18 @@ public class AdminDashboardRoot extends BaseComp {
         if (statusLabel != null) statusLabel.setColor(dark ? new Color(125, 140, 168) : new Color(100, 116, 139));
     }
 
+    /**
+     * Recalculates and applies responsive layout bounds for all dashboard cards.
+     * <p>
+     * Called whenever the parent container dimensions change. Hero, KPI, shortcut,
+     * and alert cards are repositioned and resized proportionally. The KPI card
+     * distributes its four children evenly. The scrollable content height is
+     * extended to ensure all cards are visible without clipping.
+     * </p>
+     *
+     * @param width  the new available width for the dashboard area
+     * @param height the new available height for the dashboard area
+     */
     public void onResize(int width, int height) {
         setBounds(0, 0, width, height);
         mainScroll.setBounds(0, 0, width, height);

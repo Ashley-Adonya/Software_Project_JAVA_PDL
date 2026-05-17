@@ -17,27 +17,49 @@ import service.ServiceResult;
 import service.SessionService;
 
 /**
- * Gestion des modales de création et modification de sessions.
- * Regroupe les interfaces de création et d'édition dans une classe compacte
- * réutilisant la structure commune.
+ * Manages modal dialogs for creating and editing session slots.
+ * <p>
+ * Provides a unified form interface shared by both creation and update workflows.
+ * The form captures the session title, date (yyyy-MM-dd), start/end times (HH:mm),
+ * room, capacity, and an associated dominante selected from a dropdown. Validation
+ * is performed before submission, and persistence is delegated to {@link service.SessionService}.
+ * On success, the session list in the parent dashboard view is automatically refreshed.
+ * </p>
  */
 public class AdminSessionModal {
     private final AdminDashboardView view;
     
+    /**
+     * Constructs a session modal manager tied to the given dashboard view.
+     *
+     * @param view the parent {@link AdminDashboardView} used to access services,
+     *             the window reference, and to trigger list refresh
+     */
     public AdminSessionModal(AdminDashboardView view) {
         this.view = view;
     }
     
     /**
-     * Ouvre la modale de création d'une nouvelle session.
+     * Opens a modal dialog for creating a new session slot.
+     * <p>
+     * The form is pre-filled with sensible defaults: start time at 08:30,
+     * end time at 12:30, and capacity of 30. All other fields are empty.
+     * Upon successful creation the session list is refreshed.
+     * </p>
      */
     public void openCreateSessionModal() {
         openSessionForm(null);
     }
     
     /**
-     * Ouvre la modale d'édition d'une session existante.
-     * @param s La session à modifier
+     * Opens a modal dialog for editing an existing session slot.
+     * <p>
+     * The form is pre-populated with the current session's values (title, date,
+     * times, room, capacity, dominante). Upon successful update the session list
+     * is refreshed. If the provided session is {@code null} the method does nothing.
+     * </p>
+     *
+     * @param s the session slot to edit; may be {@code null} in which case no action is taken
      */
     public void openEditSessionModal(SessionSlot s) {
         if (s != null) openSessionForm(s);

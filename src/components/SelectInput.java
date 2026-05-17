@@ -11,6 +11,16 @@ import java.util.function.Consumer;
 import main.BaseComp;
 import main.BaseWindow;
 
+/**
+ * A custom dropdown / select input component for the PDL application UI.
+ * <p>
+ * Displays the currently selected option in a rounded rectangle. On click a
+ * pop-up layer containing a scrollable list of options is opened on top of the
+ * window via {@link BaseWindow#openLayer(BaseComp)}. Navigation can also be
+ * performed with the keyboard (arrow keys and Escape). The selected value is
+ * communicated to clients through a {@link Consumer} callback.
+ * </p>
+ */
 public class SelectInput extends BaseComp {
     private static final int ROW_HEIGHT = 30;
     private static final int MAX_VISIBLE_ROWS = 6;
@@ -25,6 +35,18 @@ public class SelectInput extends BaseComp {
     private BaseComp popupLayer = null;
     private Consumer<String> onChange = null;
 
+    /**
+     * Constructs a SelectInput at the given position and size.
+     * <p>
+     * Registers a POINTER_UP listener that toggles the pop-up option list. The
+     * component is focusable and uses a hand cursor.
+     * </p>
+     *
+     * @param x      the x-coordinate of the component's top-left corner
+     * @param y      the y-coordinate of the component's top-left corner
+     * @param width  the component width in pixels
+     * @param height the component height in pixels
+     */
     public SelectInput(int x, int y, int width, int height) {
         super(null);
         setBounds(x, y, width, height);
@@ -40,6 +62,18 @@ public class SelectInput extends BaseComp {
         });
     }
 
+    /**
+     * Handles keyboard input to change the selected option or close the pop-up.
+     * <p>
+     * RIGHT / DOWN increment the selection index; LEFT / UP decrement it.
+     * ESCAPE closes the pop-up if open. Only responds when the component has
+     * input focus.
+     * </p>
+     *
+     * @param keyCode the integer code of the pressed key
+     * @param keyChar the character associated with the pressed key
+     * @return {@code true} if the key press was handled, {@code false} otherwise
+     */
     @Override
     public boolean onKeyPressed(int keyCode, char keyChar) {
         if (!isFocused()) {
@@ -67,6 +101,16 @@ public class SelectInput extends BaseComp {
         return false;
     }
 
+    /**
+     * Paints the select input's visual representation.
+     * <p>
+     * Draws a rounded rectangle border (highlighted when focused), the currently
+     * selected option text (trimmed with ellipsis if necessary), and a downward /
+     * upward arrow indicating the pop-up state.
+     * </p>
+     *
+     * @param g the {@link Graphics} context supplied by the rendering pipeline
+     */
     @Override
     public void customGraphics(Graphics g) {
         Graphics2D g2 = (Graphics2D) g;
@@ -97,6 +141,15 @@ public class SelectInput extends BaseComp {
         }
     }
 
+    /**
+     * Replaces the current list of selectable options.
+     * <p>
+     * Resets the selection index to stay within valid bounds. Does NOT fire the
+     * change callback.
+     * </p>
+     *
+     * @param values the new option strings; if {@code null} the list is cleared
+     */
     public void setOptions(List<String> values) {
         options.clear();
         if (values != null) {
@@ -108,6 +161,16 @@ public class SelectInput extends BaseComp {
         invalidate();
     }
 
+    /**
+     * Selects the option that matches the given value.
+     * <p>
+     * If the value is found in the current option list the selection index is
+     * updated and {@link #fireOnChange()} is called. Does nothing if the value
+     * is {@code null} or not present.
+     * </p>
+     *
+     * @param value the option string to select
+     */
     public void setSelectedOption(String value) {
         if (value == null) {
             return;
@@ -120,6 +183,12 @@ public class SelectInput extends BaseComp {
         }
     }
 
+    /**
+     * Returns the currently selected option string.
+     *
+     * @return the selected text, or {@code "No option"} if the option list is
+     *         empty
+     */
     public String getSelectedOption() {
         if (options.isEmpty()) {
             return "No option";
@@ -127,6 +196,14 @@ public class SelectInput extends BaseComp {
         return options.get(selectedIndex);
     }
 
+    /**
+     * Registers a callback that will be invoked whenever the selected option
+     * changes (either via click, keyboard, or
+     * {@link #setSelectedOption(String)}).
+     *
+     * @param onChange a {@link Consumer} receiving the newly selected option
+     *                 string; may be {@code null} to clear
+     */
     public void setOnChange(Consumer<String> onChange) {
         this.onChange = onChange;
     }

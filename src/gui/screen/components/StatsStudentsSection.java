@@ -13,6 +13,20 @@ import model.User;
 import service.StatisticsService;
 import event.UiEvent;
 
+/**
+ * Section of the statistics panel that displays registered and unregistered
+ * students side by side in two scrollable columns. Unregistered students can
+ * be searched by name or login using an embedded search field.
+ *
+ * <p><b>Key features:</b></p>
+ * <ul>
+ *   <li>Left column: list of registered students with name and login</li>
+ *   <li>Right column: unregistered (action-required) students with search filtering</li>
+ *   <li>Each student card is clickable, emitting a callback for drill-down navigation</li>
+ *   <li>Search field filters the unregistered list in real time as the user types</li>
+ *   <li>Supports dark/light mode theming and window resize events</li>
+ * </ul>
+ */
 public class StatsStudentsSection {
     private final SurfaceCard container;
     private final SearchField search;
@@ -52,9 +66,27 @@ public class StatsStudentsSection {
         container.addChild(regCard); container.addChild(unregCard);
     }
 
+    /**
+     * Returns the root UI component of this section, an invisible container
+     * {@code SurfaceCard} holding the two side-by-side column cards.
+     *
+     * @return the root {@link BaseComp} instance
+     */
     public BaseComp getRoot() { return container; }
+
+    /**
+     * Registers a callback invoked when a student card (registered or unregistered) is clicked.
+     *
+     * @param cb a {@link Consumer} accepting the clicked {@link User}
+     */
     public void onSelectStudent(Consumer<User> cb) { this.onSelectStudent = cb; }
 
+    /**
+     * Switches the section between dark and light colour themes.
+     * Updates the container background and both column cards' backgrounds and border colours.
+     *
+     * @param dark {@code true} for dark mode, {@code false} for light mode
+     */
     public void setDarkMode(boolean dark) {
         darkMode = dark;
         container.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
@@ -65,6 +97,14 @@ public class StatsStudentsSection {
         regTitle.setColor(dark ? Color.WHITE : new Color(15, 23, 42));
     }
 
+    /**
+     * Updates the section with fresh data from the statistics service.
+     * Stores the registered and unregistered student lists and re-renders both columns.
+     *
+     * @param s     the {@link StatisticsService.StatsSummary} (may be used for additional context)
+     * @param reg   the list of registered {@link User}s for this campaign
+     * @param unreg the list of unregistered {@link User}s who still need to register
+     */
     public void update(StatisticsService.StatsSummary s, List<User> reg, List<User> unreg) {
         registeredStudents = new ArrayList<>(reg);
         unregisteredStudents = new ArrayList<>(unreg);
@@ -120,6 +160,14 @@ public class StatsStudentsSection {
         renderList(unregList, unregScroll, filtered, false);
     }
 
+    /**
+     * Adjusts the layout when the parent container is resized. Splits available
+     * width into two equal columns with a gap, positions the two column cards,
+     * and re-renders both student lists.
+     *
+     * @param w the new width in pixels
+     * @param h the new height in pixels
+     */
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
         int gap = 24;

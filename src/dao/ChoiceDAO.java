@@ -8,8 +8,34 @@ import java.util.ArrayList;
 import java.util.List;
 import model.Choice;
 
+/**
+ * Data Access Object for the Choice entity.
+ * <p>
+ * This DAO handles all database operations on the {@code choices} table,
+ * including creating, updating, deleting, and querying student choices
+ * within a campaign. It also provides an atomic replace operation that
+ * deletes all previous choices for a student and inserts new ones within
+ * a single database transaction.
+ * </p>
+ *
+ * <p>The {@code choices} table stores the ranked session preferences expressed
+ * by each student during a campaign. Each record links a student to a session
+ * with an associated rank order.</p>
+ */
 public class ChoiceDAO {
 
+    /**
+     * Inserts a new choice into the {@code choices} table.
+     * <p>
+     * The {@code created_at} timestamp is set automatically by the database.
+     * On success the auto-generated primary key is returned.
+     * </p>
+     *
+     * @param choice the Choice entity containing campaign ID, student ID,
+     *               session ID, and rank order
+     * @return the generated choice ID on success, or {@code -1} if the
+     *         connection could not be obtained or an error occurred
+     */
     public int create(Choice choice) {
         String sql = "INSERT INTO choices (campaign_id, student_id, session_id, rank_order, created_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)";
         Connection conn = null;
@@ -40,6 +66,18 @@ public class ChoiceDAO {
         return -1;
     }
 
+    /**
+     * Updates the session ID and rank order of an existing choice.
+     * <p>
+     * The {@code updated_at} timestamp is set automatically by the database.
+     * Only the session reference and rank can be modified; the campaign
+     * and student associations are immutable after creation.
+     * </p>
+     *
+     * @param choice the Choice object containing the updated fields;
+     *               must have a valid non-null {@code id}
+     * @return {@code true} if exactly one row was updated, {@code false} otherwise
+     */
     public boolean update(Choice choice) {
         String sql = "UPDATE choices SET session_id = ?, rank_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?";
         Connection conn = null;
@@ -63,6 +101,12 @@ public class ChoiceDAO {
         return false;
     }
 
+    /**
+     * Deletes a single choice by its primary key.
+     *
+     * @param id the ID of the choice to delete
+     * @return {@code true} if exactly one row was deleted, {@code false} otherwise
+     */
     public boolean deleteById(int id) {
         String sql = "DELETE FROM choices WHERE id = ?";
         Connection conn = null;
@@ -84,6 +128,13 @@ public class ChoiceDAO {
         return false;
     }
 
+    /**
+     * Deletes all choices made by a specific student for a specific campaign.
+     *
+     * @param campaignId the campaign identifier
+     * @param studentId  the student identifier
+     * @return the number of rows deleted (may be 0 if none existed)
+     */
     public int deleteByStudentAndCampaign(int campaignId, int studentId) {
         String sql = "DELETE FROM choices WHERE campaign_id = ? AND student_id = ?";
         Connection conn = null;
@@ -106,6 +157,15 @@ public class ChoiceDAO {
         return 0;
     }
 
+    /**
+     * Retrieves all choices made by a specific student for a specific campaign,
+     * ordered by rank order (ascending).
+     *
+     * @param campaignId the campaign identifier
+     * @param studentId  the student identifier
+     * @return a list of matching Choice objects sorted by rank (never
+     *         {@code null}; empty if none found or on error)
+     */
     public List<Choice> findByStudentAndCampaign(int campaignId, int studentId) {
         String sql = "SELECT id, campaign_id, student_id, session_id, rank_order FROM choices WHERE campaign_id = ? AND student_id = ? ORDER BY rank_order";
         List<Choice> result = new ArrayList<Choice>();
@@ -134,6 +194,18 @@ public class ChoiceDAO {
         return result;
     }
 
+    /**
+     * Retrieves all choices for a given campaign, ordered by student ID
+     * and then by rank order.
+     * <p>
+     * This is intended for batch processing of all student preferences
+     * within a campaign (e.g. during the allocation algorithm).
+     * </p>
+     *
+     * @param campaignId the campaign identifier
+     * @return a list of all Choice objects for the campaign (never
+     *         {@code null}; empty if none exist or on error)
+     */
     public List<Choice> findByCampaign(int campaignId) {
         String sql = "SELECT id, campaign_id, student_id, session_id, rank_order FROM choices WHERE campaign_id = ? ORDER BY student_id, rank_order";
         List<Choice> result = new ArrayList<Choice>();
@@ -161,6 +233,27 @@ public class ChoiceDAO {
         return result;
     }
 
+    /**
+     * Atomically replaces all choices for a student in a given campaign.
+     * <p>
+     * The operation runs within a single database transaction:
+     * <ol>
+     *   <li>All existing choices for the student/campaign pair are deleted.</li>
+     *   <li>All new choices from the provided list are inserted in a batch.</li>
+     *   <li>The transaction is committed on success.</li>
+     * </ol>
+     * If any step fails, the transaction is rolled back and the original
+     * choices are preserved.
+     * </p>
+     *
+     * @param campaignId the campaign identifier
+     * @param studentId  the student identifier
+     * @param newChoices the list of new Choice objects to insert (the actual
+     *                   campaign_id and student_id in each Choice object are
+     *                   ignored in favour of the method parameters)
+     * @return {@code true} if the replacement completed successfully,
+     *         {@code false} if the connection failed or an error occurred
+     */
     public boolean replaceStudentChoices(int campaignId, int studentId, List<Choice> newChoices) {
         Connection conn = null;
         PreparedStatement del = null;
@@ -213,6 +306,17 @@ public class ChoiceDAO {
         return false;
     }
 
+    /**
+     * Maps the current row of a ResultSet to a Choice object.
+     * <p>
+     * Expects the ResultSet to contain the following columns in any order:
+     * id, campaign_id, student_id, session_id, rank_order.
+     * </p>
+     *
+     * @param rs the ResultSet positioned at the row to map
+     * @return a fully populated Choice instance
+     * @throws Exception if a column value cannot be read or the Choice constructor fails
+     */
     private Choice mapChoice(ResultSet rs) throws Exception {
         return new Choice(
                 rs.getInt("id"),
@@ -223,6 +327,17 @@ public class ChoiceDAO {
         );
     }
 
+    /**
+     * Closes an {@code AutoCloseable} resource silently.
+     * <p>
+     * Connections ({@code java.sql.Connection}) are deliberately <b>not</b>
+     * closed by this helper because the project uses a shared static connection
+     * managed by {@link ConnectionDAO}. Any other resource type
+     * (PreparedStatement, ResultSet) is closed and any exception is swallowed.
+     * </p>
+     *
+     * @param c the resource to close; may be {@code null}
+     */
     private void close(AutoCloseable c) {
         if (c != null && !(c instanceof java.sql.Connection)) {
             try {

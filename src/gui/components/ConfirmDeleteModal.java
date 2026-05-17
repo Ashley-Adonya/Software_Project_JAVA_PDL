@@ -11,7 +11,20 @@ import gui.components.PrimaryButton;
 import gui.components.SurfaceCard;
 
 /**
- * Modal de confirmation pour les actions irréversibles comme la suppression.
+ * Modal confirmation dialog for irreversible actions such as deleting records.
+ * Displays a centered popup card over a semi-transparent background overlay,
+ * with customizable title, message, confirm and cancel buttons.
+ * <p>
+ * This component uses the window's modal layer system (openModal/closeTopLayer)
+ * to present itself above the normal content. It is typically used throughout
+ * the admin dashboard to confirm destructive operations and prevent accidental data loss.
+ * <p>
+ * Key features:
+ * - Customizable confirmation message
+ * - Callback-based confirm and cancel actions
+ * - Semi-transparent background overlay
+ * - Centered card layout responsive to window dimensions
+ * - Automatic layer cleanup on dismiss
  */
 public class ConfirmDeleteModal extends BaseComp {
     private final BaseWindow window;
@@ -25,6 +38,14 @@ public class ConfirmDeleteModal extends BaseComp {
     private Runnable onConfirm = () -> {};
     private Runnable onCancel = () -> {};
 
+    /**
+     * Constructs a confirmation modal dialog attached to the given window.
+     * Creates a semi-transparent full-screen background overlay and a centered
+     * modal card with a title, message, cancel button, and confirm button.
+     * The modal is not shown until {@link #show()} is called.
+     *
+     * @param window the parent BaseWindow used for modal layer management (openModal/closeTopLayer)
+     */
     public ConfirmDeleteModal(BaseWindow window) {
         System.out.println("Initializing ConfirmDeleteModal");
         super(null);
@@ -68,13 +89,38 @@ public class ConfirmDeleteModal extends BaseComp {
         addChild(modalCard);
     }
 
+    /**
+     * Registers a callback to execute when the confirm button is clicked.
+     * The callback runs before the modal is automatically dismissed.
+     *
+     * @param cb the runnable to execute on confirmation; may be null-safe
+     */
     public void setOnConfirm(Runnable cb) { this.onConfirm = cb; }
+
+    /**
+     * Registers a callback to execute when the cancel button is clicked.
+     * The callback runs before the modal is automatically dismissed.
+     *
+     * @param cb the runnable to execute on cancellation; may be null-safe
+     */
     public void setOnCancel(Runnable cb) { this.onCancel = cb; }
-    
+
+    /**
+     * Updates the message text displayed in the modal body to describe
+     * the specific action being confirmed.
+     *
+     * @param message the new confirmation message; replaces the previous text
+     */
     public void setMessage(String message) {
         this.messageLabel.setText(message);
     }
     
+    /**
+     * Displays the modal by sizing it to match the window content dimensions,
+     * centering the modal card, and opening it as a top-layer overlay via
+     * {@link BaseWindow#openModal(BaseComp)}.
+     * The background overlay covers the entire content area with semi-transparent black.
+     */
     public void show() {
         // Set our own bounds to match the window content
         setBounds(0, 0, window.getContent().getWidth(), window.getContent().getHeight());
@@ -86,6 +132,10 @@ public class ConfirmDeleteModal extends BaseComp {
         window.openModal(this);
     }
     
+    /**
+     * Hides the modal by closing the top window layer.
+     * Equivalent to calling {@link BaseWindow#closeTopLayer()}.
+     */
     public void hide() {
         window.closeTopLayer();
     }

@@ -12,14 +12,60 @@ import service.RegistrationService;
 import service.ServiceResult;
 
 /**
- * Aide à la construction des cartes de session dans la modale d'inscription.
- * Gère l'affichage des statuts (conflit, plein, disponible) et les boutons d'action.
+ * Helper utility for building individual session cards within the student
+ * registration modal.
+ * <p>
+ * Each card visually represents a session slot, displaying its title, date,
+ * time range, room, and a colour-coded availability status:
+ * <ul>
+ *   <li><b>Red</b> &ndash; scheduling conflict</li>
+ *   <li><b>Orange</b> &ndash; session full (with an optional alternative)</li>
+ *   <li><b>Blue</b> &ndash; places available</li>
+ * </ul>
+ * Depending on the state, a "Register" or "Alternative" action button is
+ * added to the card.
+ * </p>
  */
 class AdminSessionCardHelper {
     private final AdminDashboardView view;
 
+    /**
+     * Constructs a session card helper bound to the given dashboard view.
+     *
+     * @param view the parent {@link AdminDashboardView} used to access the
+     *             registration service and window reference
+     */
     AdminSessionCardHelper(AdminDashboardView view) { this.view = view; }
 
+    /**
+     * Builds a colour-coded session card with status information and action buttons.
+     * <p>
+     * The card content includes:
+     * <ul>
+     *   <li>Session title (bold)</li>
+     *   <li>Date, time range, and room (secondary text)</li>
+     *   <li>Status indicator (conflict, remaining places, or full)</li>
+     *   <li>"Register" button when the slot is available and has free capacity</li>
+     *   <li>"Alternative" button when the slot is full but an alternative session exists</li>
+     * </ul>
+     * The background colour changes according to the status: red for conflict,
+     * orange for full, blue for available.
+     * </p>
+     *
+     * @param s                the session slot to render
+     * @param check            the conflict-check result for this student/session pair
+     * @param slotAllocated    current number of registrations allocated to this session
+     * @param y                vertical pixel position of the card within the parent scroll view
+     * @param cardWidth        the card width in pixels
+     * @param campaignId       the ID of the active campaign
+     * @param studentId        the ID of the student being registered
+     * @param dominanteName    the selected dominante name (used during list rebuild)
+     * @param sessionScroll    the parent scroll view container
+     * @param feedbackLabel    the label used to display registration feedback messages
+     * @param modal            the parent modal dialog (for closing if needed)
+     * @param refreshCallback  callback invoked after a successful registration to rebuild the session list
+     * @return a fully constructed {@link SurfaceCard} component ready for display
+     */
     SurfaceCard createSessionCard(SessionSlot s, RegistrationService.ConflictResult check, int slotAllocated,
                                    int y, int cardWidth, int campaignId, int studentId, String dominanteName,
                                    ScrollView sessionScroll, Label feedbackLabel, FormModal modal,

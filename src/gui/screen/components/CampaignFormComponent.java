@@ -16,6 +16,20 @@ import service.CampaignService;
 import service.ServiceResult;
 import model.User;
 
+/**
+ * Reusable form component for creating and managing campaigns in the admin dashboard.
+ * Provides input fields for campaign metadata (name, registration dates, max choices),
+ * status management buttons for transitioning between campaign lifecycle states,
+ * and an automatic assignment trigger.
+ * <p>
+ * Key features:
+ * - Create and edit campaign details (name, dates, max choices)
+ * - Status transition buttons (PREPARATION, OPEN, CLOSED, VALIDATED, ARCHIVED)
+ * - Automatic student-to-session assignment execution
+ * - Visual status indicator with color-coded labels
+ * - Async save operations with progress feedback
+ * - Responsive layout adaptation to parent container width
+ */
 public class CampaignFormComponent {
     // private final BaseWindow window;
     private final BaseComp root;
@@ -41,6 +55,16 @@ public class CampaignFormComponent {
     private CampaignService campaignService;
     private AssignmentService assignmentService;
 
+    /**
+     * Constructs the campaign form component with the parent window and current user.
+     * Creates two SurfaceCard sections: the form card with input fields and save button,
+     * and the status card with state transition buttons and auto-assignment trigger.
+     * All buttons are initially invisible and shown dynamically based on the campaign status.
+     *
+     * @param window      the main application window for rendering
+     * @param currentUser the currently authenticated user, used to initialize the CampaignService
+     *                    with appropriate permissions for status transitions
+     */
     public CampaignFormComponent(BaseWindow window, User currentUser) {
         // this.window = window;
         this.campaignService = new CampaignService(currentUser);
@@ -113,9 +137,30 @@ public class CampaignFormComponent {
         root.addChild(statusCard);
     }
 
+    /**
+     * Returns the root container component that holds both the form card and status card.
+     * This root should be added to the parent layout for the form to be visible.
+     *
+     * @return the root BaseComp containing all form and status UI elements
+     */
     public BaseComp getRoot() { return root; }
+
+    /**
+     * Registers a callback to be invoked when the save button is clicked.
+     * The callback receives a Campaign object populated with the current form field values.
+     *
+     * @param cb the consumer to call with the assembled Campaign on save; may be null-safe default
+     */
     public void onSave(Consumer<Campaign> cb) { this.onSave = cb; }
 
+    /**
+     * Populates the form fields and status display from the given campaign.
+     * If the campaign is null, all fields are cleared and a message indicating
+     * no active campaign is shown. Status buttons are updated to reflect
+     * allowed transitions from the campaign's current state.
+     *
+     * @param campaign the campaign to load data from, or null to reset the form
+     */
     public void refreshFrom(Campaign campaign) {
         this.currentCampaign = campaign;
         if (campaign == null) {
@@ -139,6 +184,12 @@ public class CampaignFormComponent {
         updateButtonVisibility(campaign.getStatus());
     }
 
+    /**
+     * Sets the feedback message displayed below the save button.
+     * Typically used to show validation errors or success confirmations.
+     *
+     * @param msg the message text to display; null or empty string clears the feedback label
+     */
     public void setFeedback(String msg) {
         feedbackLabel.setText(msg == null ? "" : msg);
     }
@@ -250,6 +301,14 @@ public class CampaignFormComponent {
         return b;
     }
 
+    /**
+     * Updates the layout of all form and status components based on the available width.
+     * Recalculates bounds for input fields, buttons, and cards to ensure
+     * proper horizontal scaling within the parent container.
+     *
+     * @param mainW the available width in pixels for the component layout;
+     *              used to scale input fields and button positions proportionally
+     */
     public void onResize(int mainW) {
         root.setBounds(0, 0, mainW, 520);
         formCard.setBounds(0, 0, mainW, 310);

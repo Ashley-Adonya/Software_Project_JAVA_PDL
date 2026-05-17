@@ -9,15 +9,35 @@ import java.util.List;
 import model.Campaign;
 
 /**
- * Data Access Object for Campaign entity.
- * Handles all database operations related to campaigns including CRUD operations,
- * status transitions, and queries.
- * 
- * @author Sado Adonya & VIEYRA Kolawole
+ * Data Access Object for the Campaign entity.
+ * <p>
+ * This DAO handles all database operations on the {@code campaigns} table,
+ * including full CRUD operations, campaign settings updates, status transitions
+ * (OPEN, CLOSED, PROCESSING, VALIDATED, ARCHIVED), and queries by promo or status.
+ * </p>
+ *
+ * <p>The {@code campaigns} table stores the master campaign configuration:
+ * name, promo, registration day, start/end dates, maximum number of choices per student,
+ * current lifecycle status, and timestamps for each status transition.</p>
+ *
+ * @author Sado Adonya &amp; VIEYRA Kolawole
  * @version 1.0
  */
 public class CampaignDAO {
 
+    /**
+     * Inserts a new campaign into the {@code campaigns} table.
+     * <p>
+     * The created_at timestamp is set automatically by the database.
+     * On success the auto-generated primary key is returned.
+     * </p>
+     *
+     * @param campaign the Campaign entity containing all required fields
+     *                 (name, promo, registrationDay, startDate, endDate,
+     *                  maxChoices, status, createdBy)
+     * @return the generated campaign ID on success, or {@code -1} if the
+     *         connection could not be obtained or an error occurred
+     */
     public int create(Campaign campaign) {
         String sql = "INSERT INTO campaigns (name, promo, registration_day, start_date, end_date, max_choices, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
         Connection conn = null;
@@ -52,6 +72,13 @@ public class CampaignDAO {
         return -1;
     }
 
+    /**
+     * Retrieves a campaign by its primary key.
+     *
+     * @param id the unique campaign identifier
+     * @return the Campaign object if found, or {@code null} if no campaign
+     *         exists with the given id, the connection failed, or an error occurred
+     */
     public Campaign findById(int id) {
         String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE id = ?";
         Connection conn = null;
@@ -78,6 +105,17 @@ public class CampaignDAO {
         return null;
     }
 
+    /**
+     * Finds all campaigns associated with a given promo (graduating year).
+     * <p>
+     * Results are ordered by registration_day in descending order so that
+     * the most recent campaigns appear first.
+     * </p>
+     *
+     * @param promo the promo string (e.g. "2026") to filter by
+     * @return a list of matching Campaign objects (never {@code null};
+     *         empty if none found or on error)
+     */
     public List<Campaign> findByPromo(String promo) {
         String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE promo = ? ORDER BY registration_day DESC";
         List<Campaign> result = new ArrayList<Campaign>();
@@ -105,6 +143,18 @@ public class CampaignDAO {
         return result;
     }
 
+    /**
+     * Finds all campaigns with a specific lifecycle status.
+     * <p>
+     * Results are ordered by registration_day in descending order.
+     * Common status values are: {@code DRAFT}, {@code OPEN}, {@code CLOSED},
+     * {@code PROCESSING}, {@code VALIDATED}, {@code ARCHIVED}.
+     * </p>
+     *
+     * @param status the status string to filter by
+     * @return a list of matching Campaign objects (never {@code null};
+     *         empty if none found or on error)
+     */
     public List<Campaign> findByStatus(String status) {
         String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE status = ? ORDER BY registration_day DESC";
         List<Campaign> result = new ArrayList<Campaign>();
@@ -134,6 +184,22 @@ public class CampaignDAO {
         return result;
     }
 
+    /**
+     * Updates the configuration settings of an existing campaign.
+     * <p>
+     * This method modifies only the campaign metadata fields (name, dates,
+     * and max choices). It does <b>not</b> change the campaign status or
+     * the timestamps associated with status transitions.
+     * </p>
+     *
+     * @param campaignId     the ID of the campaign to update
+     * @param name           the new campaign name
+     * @param registrationDay the new registration day string
+     * @param startDate      the new start date string
+     * @param endDate        the new end date string
+     * @param maxChoices     the new maximum number of choices per student
+     * @return {@code true} if exactly one row was updated, {@code false} otherwise
+     */
     public boolean updateSettings(int campaignId, String name, String registrationDay, String startDate, String endDate, int maxChoices) {
         String sql = "UPDATE campaigns SET name = ?, registration_day = ?, start_date = ?, end_date = ?, max_choices = ? WHERE id = ?";
         Connection conn = null;
@@ -160,6 +226,25 @@ public class CampaignDAO {
         return false;
     }
 
+    /**
+     * Transitions a campaign to a new lifecycle status.
+     * <p>
+     * Along with updating the {@code status} column, this method automatically
+     * sets the corresponding timestamp column depending on the target status:
+     * <ul>
+     *   <li>{@code OPEN}      -> sets {@code opened_at}</li>
+     *   <li>{@code CLOSED}    -> sets {@code closed_at}</li>
+     *   <li>{@code PROCESSING} -> sets {@code processed_at}</li>
+     *   <li>{@code VALIDATED} -> sets {@code validated_at}</li>
+     *   <li>{@code ARCHIVED}  -> sets {@code archived_at}</li>
+     * </ul>
+     * All timestamps are set to the database server's current time.
+     * </p>
+     *
+     * @param campaignId the ID of the campaign to update
+     * @param status     the target lifecycle status
+     * @return {@code true} if exactly one row was updated, {@code false} otherwise
+     */
     public boolean updateStatus(int campaignId, String status) {
         String sql = "UPDATE campaigns SET status = ?, "
                 + "opened_at = CASE WHEN ? = 'OPEN' THEN CURRENT_TIMESTAMP ELSE opened_at END, "
@@ -193,6 +278,17 @@ public class CampaignDAO {
         return false;
     }
 
+    /**
+     * Deletes a campaign by its primary key.
+     * <p>
+     * Note: this is a hard delete. Related rows in dependent tables
+     * (choices, registrations, sessions) may need to be deleted first
+     * depending on the database foreign-key configuration.
+     * </p>
+     *
+     * @param campaignId the ID of the campaign to delete
+     * @return {@code true} if exactly one row was deleted, {@code false} otherwise
+     */
     public boolean deleteById(int campaignId) {
         String sql = "DELETE FROM campaigns WHERE id = ?";
         Connection conn = null;
@@ -214,6 +310,19 @@ public class CampaignDAO {
         return false;
     }
 
+    /**
+     * Maps the current row of a ResultSet to a Campaign object.
+     * <p>
+     * Expects the ResultSet to contain the following columns in any order:
+     * id, name, promo, registration_day, start_date, end_date, max_choices,
+     * status, created_by, opened_at, closed_at, processed_at, validated_at,
+     * archived_at.
+     * </p>
+     *
+     * @param rs the ResultSet positioned at the row to map
+     * @return a fully populated Campaign instance
+     * @throws Exception if a column value cannot be read or the Campaign constructor fails
+     */
     private Campaign mapCampaign(ResultSet rs) throws Exception {
         return new Campaign(
                 rs.getInt("id"),
@@ -233,6 +342,17 @@ public class CampaignDAO {
         );
     }
 
+    /**
+     * Closes an {@code AutoCloseable} resource silently.
+     * <p>
+     * Connections ({@code java.sql.Connection}) are deliberately <b>not</b>
+     * closed by this helper because the project uses a shared static connection
+     * managed by {@link ConnectionDAO}. Any other resource type
+     * (PreparedStatement, ResultSet) is closed and any exception is swallowed.
+     * </p>
+     *
+     * @param c the resource to close; may be {@code null}
+     */
     private void close(AutoCloseable c) {
         if (c != null && !(c instanceof java.sql.Connection)) {
             try {

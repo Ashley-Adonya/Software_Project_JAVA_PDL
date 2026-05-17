@@ -26,6 +26,9 @@ public class ChoiceService {
     private final RegistrationService registrationService;
     private final SessionDAO sessionDAO;
 
+    /**
+     * Default constructor initializing DAOs and the registration service for choice management.
+     */
     public ChoiceService() {
         this.choiceDAO = new ChoiceDAO();
         this.campaignDAO = new CampaignDAO();
@@ -34,6 +37,15 @@ public class ChoiceService {
         this.registrationService = new RegistrationService();
     }
 
+    /**
+     * Replaces all choices for a student in a given campaign with a new list.
+     * Validates campaign status, student eligibility, rank/session uniqueness, and scheduling conflicts.
+     *
+     * @param campaignId the ID of the campaign
+     * @param studentId  the ID of the student
+     * @param newChoices the new list of choices to save
+     * @return ServiceResult indicating success or failure with a descriptive message
+     */
     public ServiceResult replaceStudentChoices(int campaignId, int studentId, List<Choice> newChoices) {
         Campaign campaign = campaignDAO.findById(campaignId);
         if (campaign == null) {
@@ -95,10 +107,25 @@ public class ChoiceService {
         return ServiceResult.ok("Choix enregistres");
     }
 
+    /**
+     * Retrieves the list of choices submitted by a student for a given campaign, using cache.
+     *
+     * @param campaignId the ID of the campaign
+     * @param studentId  the ID of the student
+     * @return the list of choices for the student in the campaign
+     */
     public List<Choice> getStudentChoices(int campaignId, int studentId) {
         return CacheManager.getOrLoad("choice:student:" + campaignId + ":" + studentId, () -> choiceDAO.findByStudentAndCampaign(campaignId, studentId));
     }
 
+    /**
+     * Finds alternative session slots for a student within the same domain when their preferred session is full.
+     *
+     * @param campaignId the ID of the campaign
+     * @param studentId  the ID of the student
+     * @param sessionId  the ID of the preferred session
+     * @return a list of alternative sessions, or an empty list if none are available
+     */
     public List<RegistrationService.AlternativeSession> getAlternativeSessions(int campaignId, int studentId, int sessionId) {
         model.SessionSlot session = sessionDAO.findById(sessionId);
         if (session == null) return new java.util.ArrayList<>();

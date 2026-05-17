@@ -56,6 +56,14 @@ public class SessionListComponent {
     private int currentCampaignId = -1;
     private boolean darkMode = true;
 
+    /**
+     * Constructeur du composant de liste des sessions.
+     *
+     * @param window            la fenêtre parente
+     * @param sessionService    le service de gestion des sessions
+     * @param dominanteService  le service de gestion des dominantes
+     * @param view              la vue dashboard admin parente
+     */
     public SessionListComponent(BaseWindow window, SessionService sessionService, DominanteService dominanteService, AdminDashboardView view) {
         this.sessionService = sessionService;
         this.dominanteService = dominanteService;
@@ -73,19 +81,54 @@ public class SessionListComponent {
         backgroundCard.addChild(sessionsScroll);
     }
 
+    /**
+     * Retourne le composant racine pour l'affichage.
+     *
+     * @return le composant racine encapsulant la liste des sessions
+     */
     public BaseComp getRoot() { return backgroundCard; }
 
+    /**
+     * Définit le callback appelé lors de l'édition d'une session.
+     *
+     * @param cb le consommateur appelé avec la session à éditer
+     */
     public void setOnEditSession(Consumer<SessionSlot> cb) { this.onEditSession = cb; }
+    /**
+     * Définit le callback appelé pour la gestion des inscriptions d'une session.
+     *
+     * @param cb le consommateur appelé avec la session à gérer
+     */
     public void setOnManageSession(Consumer<SessionSlot> cb) { this.onManageSession = cb; }
+    /**
+     * Définit le callback appelé lors de la création d'une session.
+     *
+     * @param cb l'action à exécuter pour créer une session
+     */
     public void setOnCreateSession(Runnable cb) { this.onCreateSession = cb; }
 
+    /**
+     * Définit l'identifiant de la campagne active pour filtrer les sessions.
+     *
+     * @param campaignId l'identifiant de la campagne active
+     */
     public void setActiveCampaignId(int campaignId) { this.currentCampaignId = campaignId; }
 
+    /**
+     * Active ou désactive le mode sombre.
+     *
+     * @param dark true pour le mode sombre, false pour le mode clair
+     */
     public void setDarkMode(boolean dark) {
         this.darkMode = dark;
         applyDarkMode(dark);
     }
 
+    /**
+     * Applique les couleurs du mode sombre ou clair aux composants internes.
+     *
+     * @param dark true pour le mode sombre, false pour le mode clair
+     */
     private void applyDarkMode(boolean dark) {
         if (dark) {
             backgroundCard.setBackground(new Color(14, 18, 26));
@@ -99,6 +142,10 @@ public class SessionListComponent {
         backgroundCard.invalidate();
     }
 
+    /**
+     * Rafraîchit la liste des sessions en interrogeant le service.
+     * Filtre les sessions par dominante sélectionnée et reconstruit les lignes du tableau.
+     */
     public void refresh() {
         if (currentCampaignId <= 0) {
             clearChildren(sessionsList);
@@ -154,6 +201,12 @@ public class SessionListComponent {
         sessionsScroll.setContentHeight(Math.max(sessionsScroll.getHeight(), y + 10));
     }
 
+    /**
+     * Ajuste la disposition des composants lors du redimensionnement de la fenêtre.
+     *
+     * @param width  la nouvelle largeur de la fenêtre
+     * @param height la nouvelle hauteur de la fenêtre
+     */
     public void onResize(int width, int height) {
         int mainW = width;
         backgroundCard.setBounds(0, 0, mainW, height);
@@ -162,12 +215,29 @@ public class SessionListComponent {
         sessionsScroll.setBounds(0, 126, mainW, Math.max(220, height - 126));
     }
 
+    /**
+     * Formate un nombre de minutes en chaîne HH:mm.
+     *
+     * @param minute le nombre de minutes depuis minuit
+     * @return la chaîne formatée (ex: "14:30")
+     */
     private String formatMinute(int minute) {
         int h = minute / 60;
         int m = minute % 60;
         return String.format("%02d:%02d", h, m);
     }
 
+    /**
+     * Supprime tous les enfants d'un composant parent.
+     *
+     * @param parent le composant dont les enfants doivent être supprimés
+     */
     private void clearChildren(BaseComp parent) { ArrayList<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList()); for (BaseComp c : snapshot) parent.removeChild(c); }
+    /**
+     * Retourne une valeur par défaut si la chaîne est nulle ou vide.
+     *
+     * @param v la chaîne à tester
+     * @return la chaîne d'origine ou "-" si elle est nulle/vide
+     */
     private String safe(String v) { return v == null || v.isBlank() ? "-" : v; }
 }

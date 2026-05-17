@@ -12,6 +12,20 @@ import components.ScrollView;
 import model.User;
 import service.StatisticsService;
 
+/**
+ * Panel that displays the detailed view of a single student.
+ * Shows the student's name, login, promo, and a scrollable list of all
+ * sessions the student is enrolled in, with fill rates and capacity indicators.
+ *
+ * <p><b>Key features:</b></p>
+ * <ul>
+ *   <li>Renders a header card with student identity information</li>
+ *   <li>Lists all sessions the student registered for, each with dominante name,
+ *       time slot, fill rate (as a visual ASCII bar), and a "full" warning if applicable</li>
+ *   <li>Provides a "back" button to return to the previous view</li>
+ *   <li>Supports dark/light mode theming and window resize events</li>
+ * </ul>
+ */
 public class StudentDetailPanel {
     private final StatisticsService statsService;
     private final SurfaceCard container;
@@ -61,9 +75,28 @@ public class StudentDetailPanel {
         sessionsList.addChild(emptyLabel);
     }
 
+    /**
+     * Returns the root UI component of this student detail panel.
+     *
+     * @return the root {@link BaseComp} container
+     */
     public BaseComp getRoot() { return container; }
+
+    /**
+     * Registers a callback invoked when the user clicks the back button.
+     *
+     * @param r a {@link Runnable} to execute on the back action
+     */
     public void setOnBack(Runnable r) { this.onBack = r; }
 
+    /**
+     * Loads a specific student's information into the header and rebuilds
+     * the scrollable list of sessions they are enrolled in. Sets the student
+     * name, login, and promo label, then triggers a full refresh.
+     *
+     * @param student    the {@link User} to display; must not be {@code null}
+     * @param campaignId the numerical identifier of the campaign to load sessions for
+     */
     public void loadStudent(User student, int campaignId) {
         this.currentStudent = student;
         this.campaignId = campaignId;
@@ -73,6 +106,12 @@ public class StudentDetailPanel {
         refresh();
     }
 
+    /**
+     * Reloads the list of sessions for the current student and campaign from
+     * the statistics service. Renders each session as a card showing its title,
+     * dominante, time slot, and a visual fill-rate bar. Cards for fully booked
+     * sessions use a distinct warm background colour.
+     */
     public void refresh() {
         clearChildren(sessionsList);
         if (currentStudent == null || campaignId <= 0) { sessionsList.addChild(emptyLabel); return; }
@@ -101,6 +140,12 @@ public class StudentDetailPanel {
         sessionsScroll.setContentHeight(Math.max(sessionsScroll.getHeight(), y + 8));
     }
 
+    /**
+     * Switches the panel between dark and light colour themes.
+     * Updates the container background, header background, and header border colour.
+     *
+     * @param dark {@code true} for dark mode, {@code false} for light mode
+     */
     public void setDarkMode(boolean dark) {
         darkMode = dark;
         container.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
@@ -108,6 +153,14 @@ public class StudentDetailPanel {
         header.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
     }
 
+    /**
+     * Adjusts the layout when the parent container is resized. Positions the
+     * header at the top and expands the scrollable session list to fill the
+     * remaining vertical space.
+     *
+     * @param w the new width in pixels
+     * @param h the new height in pixels
+     */
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
         header.setBounds(0, 0, w, 80);

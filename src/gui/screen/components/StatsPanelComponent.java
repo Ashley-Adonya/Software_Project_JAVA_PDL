@@ -12,6 +12,22 @@ import gui.components.PrimaryButton;
 import components.Label;
 import components.ScrollView;
 
+/**
+ * Main statistics panel that orchestrates all sub-sections (KPI, filter,
+ * sessions, students, and detail panels) within a tabbed interface.
+ * Provides a global overview of campaign statistics as well as drill-down
+ * views for individual students and sessions.
+ *
+ * <p><b>Key features:</b></p>
+ * <ul>
+ *   <li>Three-tab navigation: "Vue globale" (overview), "Étudiants" (students), "Détails Sessions" (session details)</li>
+ *   <li>Overview tab shows KPI cards, a search/filter section, session distribution, and student lists</li>
+ *   <li>Student and session detail panels with a back button to return to the list view</li>
+ *   <li>Coordinates data refreshing across all sub-sections when the campaign or promo changes</li>
+ *   <li>Supports dark/light mode theming propagated to all child components</li>
+ *   <li>Responsive layout that recalculates all bounds on resize</li>
+ * </ul>
+ */
 public class StatsPanelComponent {
     private enum ViewMode { OVERVIEW, STUDENT, SESSION }
     private ViewMode mode = ViewMode.OVERVIEW;
@@ -73,9 +89,28 @@ public class StatsPanelComponent {
         root.addChild(scroll);
     }
 
+    /**
+     * Returns the root UI component of the entire stats panel.
+     *
+     * @return the root {@link BaseComp} container
+     */
     public BaseComp getRoot() { return root; }
+
+    /**
+     * Registers a callback invoked when a student is selected anywhere within the panel.
+     *
+     * @param cb a {@link Consumer} accepting the selected {@link User}
+     */
     public void onSelectStudent(Consumer<User> cb) { this.onSelectStudent = cb; }
 
+    /**
+     * Switches the panel between dark and light colour themes.
+     * Propagates the theme change to all sub-sections: KPI, filter, sessions,
+     * students, and both detail panels. Also updates the tab button colours
+     * to highlight the active tab.
+     *
+     * @param dark {@code true} for dark mode, {@code false} for light mode
+     */
     public void setDarkMode(boolean dark) {
         darkMode = dark;
         root.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
@@ -114,6 +149,15 @@ public class StatsPanelComponent {
         root.invalidate();
     }
 
+    /**
+     * Refreshes all statistics data for the given campaign and promo.
+     * Fetches a fresh {@link StatisticsService.StatsSummary} from the service,
+     * updates every sub-section (KPI, sessions, filter, registered/unregistered students),
+     * and switches the view back to the overview tab.
+     *
+     * @param campaignId the numerical identifier of the campaign; ignored if {@code <= 0}
+     * @param promo      the promo (class year) string; ignored if blank
+     */
     public void refresh(int campaignId, String promo) {
         this.campaignId = campaignId;
         this.promo = promo;
@@ -128,6 +172,16 @@ public class StatsPanelComponent {
         switchView(ViewMode.OVERVIEW);
     }
 
+    /**
+     * Adjusts the layout of all sub-sections when the parent container is resized.
+     * Positions the hero card with tab buttons at the top, then lays out visible
+     * sections vertically (KPI, filter, sessions, students, or detail panels)
+     * depending on the current view mode. Dynamically calculates heights to
+     * prevent ugly overflow.
+     *
+     * @param mainW the new width in pixels
+     * @param mainH the new height in pixels
+     */
     public void onResize(int mainW, int mainH) {
         root.setBounds(0, 0, mainW, mainH);
         scroll.setBounds(0, 0, mainW, mainH);

@@ -30,6 +30,23 @@ import service.ChoiceService;
 import service.SessionService;
 import service.ServiceResult;
 
+/**
+ * Student dashboard screen that allows students to browse available sessions,
+ * make their ranked choices, and view their current inscriptions.
+ * Implements the AppScreen interface with a sidebar navigation, search functionality,
+ * and interactive choice management with drag-like reordering (up/down buttons).
+ * <p>
+ * Key features:
+ * - Browse and filter available sessions by keyword
+ * - Add/remove sessions to/from personal ranked choices
+ * - Reorder choices via up/down controls
+ * - Real-time feedback on save operations
+ * - Responsive two-section layout (search and inscriptions)
+ * - Sidebar menu with logout support
+ * <p>
+ * This screen operates within an active campaign context. If no open campaign
+ * is found for the student's promotion, a message is displayed instead of sessions.
+ */
 public class StudentDashboardScreen implements AppScreen {
     private static final Color PAGE_BG = new Color(14, 18, 26);
     private static final Color MUTED_TEXT = new Color(103, 113, 131);
@@ -86,6 +103,18 @@ public class StudentDashboardScreen implements AppScreen {
     private Campaign currentCampaign;
     private Section activeSection;
 
+    /**
+     * Constructs the student dashboard screen with the parent window,
+     * authenticated user, and logout callback.
+     * Initializes all UI components: sidebar menu, page header, search field,
+     * scrollable offers list, selections card with reorder controls,
+     * and the underlying service instances for campaigns, sessions, and choices.
+     *
+     * @param window   the main application window for rendering and layout management
+     * @param user     the authenticated student user whose data and promo drives campaign resolution
+     * @param onLogout a callback invoked when the student requests to log out;
+     *                 triggers navigation back to the login screen via ScreenRouter
+     */
     public StudentDashboardScreen(BaseWindow window, User user, Runnable onLogout) {
         this.window = window;
         this.user = user;
@@ -157,6 +186,12 @@ public class StudentDashboardScreen implements AppScreen {
         this.activeSection = Section.SEARCH;
     }
 
+    /**
+     * Mounts the student dashboard by setting up the content pane style,
+     * adding all child components to the window, loading initial data,
+     * rendering the default section, and performing the first layout pass.
+     * Called by ScreenRouter when this screen becomes active.
+     */
     @Override
     public void mount() {
         BaseComp content = window.getContent();
@@ -175,6 +210,13 @@ public class StudentDashboardScreen implements AppScreen {
         onResize();
     }
 
+    /**
+     * Handles window resize events by recalculating the layout of all components.
+     * Manages two distinct layout modes based on the active section:
+     * - SEARCH mode: shows sidebar, header, search field, scrollable offers, and selections card
+     * - INSCRIPTIONS mode: shows sidebar, header, and selections card only
+     * Dynamically computes dimensions based on window width and height.
+     */
     @Override
     public void onResize() {
         BaseComp content = window.getContent();

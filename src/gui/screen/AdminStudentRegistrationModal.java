@@ -16,21 +16,44 @@ import model.User;
 import service.RegistrationService;
 
 /**
- * Modale d'inscription d'un étudiant par l'administrateur.
- * Gère la sélection de dominante, l'affichage des sessions disponibles,
- * la détection des conflits et la proposition d'alternatives.
+ * Modal dialog for administrator-driven student registration.
+ * <p>
+ * Allows an admin to select a student, choose a study domain (dominante),
+ * view all available session slots for that domain, detect scheduling
+ * conflicts, and register the student with a single click. When a session
+ * is full, the dialog can propose alternative sessions. Each session card
+ * is dynamically built by {@link AdminSessionCardHelper} and shows live
+ * availability status and action buttons.
+ * </p>
  */
 public class AdminStudentRegistrationModal {
     private final AdminDashboardView view;
     private final AdminSessionCardHelper cardHelper;
 
+    /**
+     * Constructs a student registration modal manager.
+     *
+     * @param view the parent {@link AdminDashboardView} used to access services,
+     *             DAOs, the window reference, and session data
+     */
     public AdminStudentRegistrationModal(AdminDashboardView view) {
         this.view = view;
         this.cardHelper = new AdminSessionCardHelper(view);
     }
 
     /**
-     * Ouvre la modale d'inscription pour un étudiant donné.
+     * Opens a modal dialog to manage registration for the given student.
+     * <p>
+     * The dialog displays the student's full name and login, a dropdown to
+     * select a dominante, and a scrollable list of sessions that updates
+     * dynamically when the selected dominante changes. Each session card
+     * indicates conflict status, remaining places, or fullness. The admin
+     * can register the student directly or choose an alternative session
+     * when the preferred one is full.
+     * </p>
+     *
+     * @param student the student to register; if {@code null} or if no active
+     *                campaign exists, the method returns without action
      */
     public void openManageStudentModal(User student) {
         if (student == null || view.getActiveCampaign() == null) return;

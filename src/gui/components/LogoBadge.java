@@ -6,10 +6,23 @@ import java.awt.Graphics2D;
 
 import main.BaseComp;
 
+/**
+ * A lightweight component that renders a small logo badge consisting of a
+ * rounded purple rectangle with a white graduation-cap-style icon. It is
+ * intended for use in headers, sidebars, and other branding areas where a
+ * compact visual identifier is needed.
+ */
 public class LogoBadge extends BaseComp {
     private static final Color BADGE_COLOR = new Color(120, 70, 255);
     private static final Color ICON_COLOR = Color.WHITE;
 
+    /**
+     * Constructs a logo badge at the given position with the specified size.
+     *
+     * @param x    the x-coordinate of the badge
+     * @param y    the y-coordinate of the badge
+     * @param size the width and height of the badge (square)
+     */
     public LogoBadge(int x, int y, int size) {
         super(null);
         setBounds(x, y, size, size);

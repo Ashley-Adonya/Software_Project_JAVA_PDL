@@ -17,10 +17,18 @@ import model.Dominante;
 public class DominanteService {
     private final DominanteDAO dominanteDAO;
 
+    /**
+     * Default constructor initializing the DominanteDAO.
+     */
     public DominanteService() {
         this.dominanteDAO = new DominanteDAO();
     }
 
+    /**
+     * Retrieves all dominantes from cache or database.
+     *
+     * @return an ArrayList of all dominantes
+     */
     public ArrayList<Dominante> listAll() {
         List<Dominante> dominantes = CacheManager.getOrLoad("dominante:all", () -> dominanteDAO.findAll());
         if (dominantes instanceof ArrayList<Dominante> arrayList) {
@@ -29,11 +37,24 @@ public class DominanteService {
         return new ArrayList<>(dominantes);
     }
 
+    /**
+     * Finds a dominante by its ID, with caching.
+     *
+     * @param id the ID of the dominante
+     * @return the dominante if found, or null if the ID is invalid or not found
+     */
     public Dominante findById(int id) {
         if (id <= 0) return null;
         return CacheManager.getOrLoad("dominante:id:" + id, () -> dominanteDAO.findById(id));
     }
 
+    /**
+     * Creates a new dominante after validation.
+     * Invalidates relevant caches on success.
+     *
+     * @param dominante the dominante to create
+     * @return ServiceResult indicating success with the new ID, or failure with an error message
+     */
     public ServiceResult create(Dominante dominante) {
         String validation = validateDominante(dominante);
         if (validation != null) {
@@ -48,6 +69,13 @@ public class DominanteService {
         return ServiceResult.ok("Dominante creee (id=" + id + ")");
     }
 
+    /**
+     * Updates an existing dominante after validation.
+     * Invalidates relevant caches on success.
+     *
+     * @param dominante the dominante with updated fields
+     * @return ServiceResult indicating success or failure
+     */
     public ServiceResult update(Dominante dominante) {
         if (dominante == null || dominante.getId() <= 0) {
             return ServiceResult.fail("Dominante invalide");
@@ -65,6 +93,13 @@ public class DominanteService {
         return ServiceResult.ok("Dominante modifiee");
     }
 
+    /**
+     * Deletes a dominante by its ID.
+     * Invalidates relevant caches on success.
+     *
+     * @param dominanteId the ID of the dominante to delete
+     * @return ServiceResult indicating success or failure
+     */
     public ServiceResult deleteById(int dominanteId) {
         if (dominanteId <= 0) {
             return ServiceResult.fail("Id dominante invalide");
@@ -78,6 +113,12 @@ public class DominanteService {
         return ServiceResult.ok("Dominante supprimee");
     }
 
+    /**
+     * Validates a dominante object, checking that name and code are present and non-empty.
+     *
+     * @param dominante the dominante to validate
+     * @return null if valid, or an error message string if invalid
+     */
     private String validateDominante(Dominante dominante) {
         if (dominante == null) {
             return "Dominante vide";

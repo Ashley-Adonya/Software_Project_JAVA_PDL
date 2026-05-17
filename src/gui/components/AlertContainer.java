@@ -8,6 +8,14 @@ import java.util.List;
 import components.Label;
 import main.BaseComp;
 
+/**
+ * A container component that displays a vertical list of alerts, each
+ * categorised by severity type (INFO, WARNING, ERROR). Alerts are rendered
+ * as coloured cards with a message and an optional detail line. When the
+ * alert list is empty a placeholder message is shown. The container
+ * supports both dark and light colour themes and dynamically rebuilds its
+ * child components whenever alerts are updated or the container is resized.
+ */
 public class AlertContainer extends SurfaceCard {
     private final BaseComp alertsList;
     private List<AlertItem> currentAlerts = new ArrayList<>();
@@ -19,8 +27,18 @@ public class AlertContainer extends SurfaceCard {
         addChild(alertsList);
     }
 
+    /**
+     * Returns the root component of this alert container.
+     *
+     * @return this container instance
+     */
     public BaseComp getRoot() { return this; }
 
+    /**
+     * Toggles the visual theme between dark mode and light mode.
+     *
+     * @param dark true to apply the dark theme, false for the light theme
+     */
     public void setDarkMode(boolean dark) {
         this.darkMode = dark;
         if (dark) {
@@ -33,6 +51,13 @@ public class AlertContainer extends SurfaceCard {
         redrawAlerts(getWidth(), getHeight());
     }
 
+    /**
+     * Replaces the current list of alerts with a new one and redraws the
+     * container to reflect the change.
+     *
+     * @param alerts the new list of alerts to display; if null an empty list
+     *               is used
+     */
     public void setAlerts(List<AlertItem> alerts) {
         this.currentAlerts = alerts != null ? alerts : new ArrayList<>();
         redrawAlerts(Math.max(getWidth(), 300), getHeight());
@@ -75,6 +100,13 @@ public class AlertContainer extends SurfaceCard {
         invalidate();
     }
 
+    /**
+     * Re-layouts the container and redraws all alerts when the parent
+     * component is resized.
+     *
+     * @param width  the new width of the container
+     * @param height the new height of the container
+     */
     public void onResize(int width, int height) {
         setBounds(0, 0, width, height);
         redrawAlerts(width, height);
@@ -86,13 +118,27 @@ public class AlertContainer extends SurfaceCard {
         }
     }
 
+    /**
+     * Represents a single alert item with a type, a short message, and an
+     * optional detail description.
+     */
     public static class AlertItem {
         public AlertType type;
         public String message;
         public String detail;
+        /**
+         * Constructs an alert item with the given properties.
+         *
+         * @param type    the severity type of the alert
+         * @param message the main alert message
+         * @param detail  an optional detailed description (may be null or empty)
+         */
         public AlertItem(AlertType type, String message, String detail) {
             this.type = type; this.message = message; this.detail = detail;
         }
     }
+    /**
+     * Severity levels for an alert.
+     */
     public static enum AlertType { INFO, WARNING, ERROR }
 }

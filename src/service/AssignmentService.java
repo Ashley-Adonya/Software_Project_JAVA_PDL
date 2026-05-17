@@ -33,6 +33,9 @@ public class AssignmentService {
     private final SessionDAO sessionDAO;
     private final UserDAO userDAO;
 
+    /**
+     * Default constructor initializing all DAOs for campaign, choice, registration, session, and user data access.
+     */
     public AssignmentService() {
         this.campaignDAO = new CampaignDAO();
         this.choiceDAO = new ChoiceDAO();
@@ -193,6 +196,12 @@ public class AssignmentService {
         return ServiceResult.ok(msg);
     }
 
+    /**
+     * Retrieves the capacity of a session by its ID.
+     *
+     * @param sessionId the ID of the session
+     * @return the capacity of the session, or 0 if not found
+     */
     private int sessionCapacity(int sessionId) {
         SessionSlot s = sessionDAO.findById(sessionId);
         if (s == null) {

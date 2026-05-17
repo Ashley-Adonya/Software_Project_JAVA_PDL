@@ -7,6 +7,13 @@ import main.BaseWindow;
 import components.Button;
 import components.Label;
 
+/**
+ * A row component used in the admin panel to display and manage a single
+ * session. It shows the session title, time and room information, and the
+ * current fill rate. Three action buttons provide edit, manage, and delete
+ * functionality, with the delete action guarded by a confirmation modal.
+ * The component supports both light and dark colour themes.
+ */
 public class SessionRowAdmin extends SurfaceCard {
     private final SurfaceCard stripe;
     private final Label title;
@@ -16,6 +23,14 @@ public class SessionRowAdmin extends SurfaceCard {
     private final Button manageButton;
     private final Button deleteButton;
 
+    /**
+     * Constructs a new session row for the admin panel.
+     *
+     * @param onEdit   runnable invoked when the edit button is clicked
+     * @param onDelete runnable invoked when the user confirms deletion through the
+     *                 confirmation modal
+     * @param window   the parent BaseWindow used to display the confirmation modal
+     */
     public SessionRowAdmin(Runnable onEdit, Runnable onDelete, BaseWindow window) {
         super(0, 0, 100, 66, Color.WHITE, new Color(231, 235, 242), 10);
 
@@ -74,6 +89,15 @@ public class SessionRowAdmin extends SurfaceCard {
         deleteButton.setBounds(width - 86, 28, 56, 26);
     }
 
+    /**
+     * Populates the row fields with the given session data.
+     *
+     * @param title       the session title
+     * @param timeRoom    the time and room information string (e.g. "09:00-09:30 | Amphi A")
+     * @param fillRate    the fill rate percentage to display
+     * @param accentColor the colour used for the left stripe; if null a default
+     *                    purple is used
+     */
     public void setData(String title, String timeRoom, int fillRate, Color accentColor) {
         this.title.setText(title == null ? "Session" : title);
         this.timeRoom.setText(timeRoom == null ? "" : timeRoom);
@@ -84,12 +108,25 @@ public class SessionRowAdmin extends SurfaceCard {
         invalidate();
     }
 
+    /**
+     * Sets the action to run when the "Gerer" (manage) button is clicked.
+     *
+     * @param action the runnable to invoke on manage; may be null to clear the
+     *               handler
+     */
     public void setOnManage(Runnable action) {
         if (manageButton != null) {
             manageButton.setOnClick(action);
         }
     }
 
+    /**
+     * Toggles the visual theme between dark mode and light mode for this row
+     * and all its child components. Updates background, border, text, and
+     * button colours accordingly.
+     *
+     * @param dark true to apply the dark theme, false for the light theme
+     */
     public void setDarkMode(boolean dark) {
         if (dark) {
             setBackground(new Color(22, 28, 39));
