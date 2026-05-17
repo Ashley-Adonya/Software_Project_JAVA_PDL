@@ -12,11 +12,6 @@ import gui.components.PrimaryButton;
 import components.Label;
 import components.ScrollView;
 
-/**
- * Panneau principal des statistiques.
- * Structure verticale dans un scroll : Hero > Tabs > KPI > Filtres > Contenu
- * Contenu change selon l'onglet actif (Vue/Etudiants/Sessions/Détail)
- */
 public class StatsPanelComponent {
     private enum ViewMode { OVERVIEW, STUDENT, SESSION }
     private ViewMode mode = ViewMode.OVERVIEW;
@@ -26,7 +21,6 @@ public class StatsPanelComponent {
     private final BaseComp content;
 
     private final SurfaceCard heroCard;
-    private final SurfaceCard tabBar;
     private final PrimaryButton tabOverview, tabStudents, tabSessions;
 
     private final StatsKpiSection kpiSection;
@@ -47,19 +41,12 @@ public class StatsPanelComponent {
         scroll = new ScrollView(0, 0, 100, 100);
         content = scroll.getContent();
 
-        heroCard = card(0, 0, 100, 120, new Color(18, 24, 35));
-        heroCard.addChild(label("Statistiques", 18, 14, 280, 24, 20, true, new Color(239, 244, 252)));
-        heroCard.addChild(label("Analyse des inscriptions", 18, 44, 380, 18, 13, false, new Color(161, 175, 202)));
-        heroCard.addChild(label("Cliquez sur Actualiser pour mettre a jour", 18, 68, 380, 16, 11, false, new Color(129, 143, 170)));
-
-        tabBar = card(0, 0, 100, 50, new Color(22, 28, 39));
-        tabOverview = new PrimaryButton("Vue", 0, 0, 80, 38, () -> switchView(ViewMode.OVERVIEW));
-        tabStudents = new PrimaryButton("Etudiants", 88, 0, 108, 38, () -> switchView(ViewMode.STUDENT));
-        tabSessions = new PrimaryButton("Sessions", 204, 0, 96, 38, () -> switchView(ViewMode.SESSION));
-        tabOverview.setBackground(new Color(59, 130, 246));
-        tabStudents.setBackground(new Color(40, 50, 70));
-        tabSessions.setBackground(new Color(40, 50, 70));
-        tabBar.addChild(tabOverview); tabBar.addChild(tabStudents); tabBar.addChild(tabSessions);
+        heroCard = new SurfaceCard(0, 0, 100, 70, new Color(22, 28, 39), new Color(52, 63, 92), 12);
+        
+        tabOverview = new PrimaryButton("Vue globale", 0, 0, 120, 36, () -> switchView(ViewMode.OVERVIEW));
+        tabStudents = new PrimaryButton("Étudiants", 0, 0, 120, 36, () -> switchView(ViewMode.STUDENT));
+        tabSessions = new PrimaryButton("Détails Sessions", 0, 0, 140, 36, () -> switchView(ViewMode.SESSION));
+        heroCard.addChild(tabOverview); heroCard.addChild(tabStudents); heroCard.addChild(tabSessions);
 
         kpiSection = new StatsKpiSection();
         filterSection = new StatsFilterSection(statsService);
@@ -77,7 +64,7 @@ public class StatsPanelComponent {
         studentDetail.setOnBack(() -> switchView(ViewMode.STUDENT));
         sessionDetail.setOnBack(() -> switchView(ViewMode.SESSION));
 
-        content.addChild(heroCard); content.addChild(tabBar);
+        content.addChild(heroCard);
         content.addChild(kpiSection.getRoot()); content.addChild(filterSection.getRoot());
         content.addChild(sessionsSection.getRoot()); content.addChild(studentsSection.getRoot());
         content.addChild(studentDetail.getRoot()); content.addChild(sessionDetail.getRoot());
@@ -94,12 +81,18 @@ public class StatsPanelComponent {
         root.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
         heroCard.setBackground(dark ? new Color(18, 24, 35) : Color.WHITE);
         heroCard.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
-        tabBar.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
+        
         Color active = new Color(59, 130, 246);
-        Color inactive = dark ? new Color(40, 50, 70) : new Color(236, 238, 242);
+        Color inactive = dark ? new Color(40, 50, 70) : new Color(226, 230, 240);
+        Color textAc = Color.WHITE; Color textIn = dark ? new Color(219, 230, 253) : new Color(71, 85, 105);
+
         tabOverview.setBackground(mode == ViewMode.OVERVIEW ? active : inactive);
         tabStudents.setBackground(mode == ViewMode.STUDENT ? active : inactive);
         tabSessions.setBackground(mode == ViewMode.SESSION ? active : inactive);
+        tabOverview.setForeground(mode == ViewMode.OVERVIEW ? textAc : textIn);
+        tabStudents.setForeground(mode == ViewMode.STUDENT ? textAc : textIn);
+        tabSessions.setForeground(mode == ViewMode.SESSION ? textAc : textIn);
+
         kpiSection.setDarkMode(dark); filterSection.setDarkMode(dark);
         sessionsSection.setDarkMode(dark); studentsSection.setDarkMode(dark);
         studentDetail.setDarkMode(dark); sessionDetail.setDarkMode(dark);
@@ -108,28 +101,16 @@ public class StatsPanelComponent {
 
     private void switchView(ViewMode m) {
         mode = m;
-        Color active = new Color(59, 130, 246);
-        Color inactive = darkMode ? new Color(40, 50, 70) : new Color(236, 238, 242);
-        tabOverview.setBackground(m == ViewMode.OVERVIEW ? active : inactive);
-        tabStudents.setBackground(m == ViewMode.STUDENT ? active : inactive);
-        tabSessions.setBackground(m == ViewMode.SESSION ? active : inactive);
+        setDarkMode(darkMode); // Relance les couleurs de l'onglet actif
 
-        kpiSection.getRoot().setVisible(false);
-        filterSection.getRoot().setVisible(false);
-        sessionsSection.getRoot().setVisible(false);
-        studentsSection.getRoot().setVisible(false);
+        kpiSection.getRoot().setVisible(m == ViewMode.OVERVIEW);
+        filterSection.getRoot().setVisible(m == ViewMode.OVERVIEW);
+        sessionsSection.getRoot().setVisible(m == ViewMode.OVERVIEW || m == ViewMode.SESSION);
+        studentsSection.getRoot().setVisible(m == ViewMode.STUDENT);
         studentDetail.getRoot().setVisible(false);
         sessionDetail.getRoot().setVisible(false);
 
-        if (m == ViewMode.OVERVIEW) {
-            kpiSection.getRoot().setVisible(true);
-            filterSection.getRoot().setVisible(true);
-            sessionsSection.getRoot().setVisible(true);
-        } else if (m == ViewMode.STUDENT) {
-            studentsSection.getRoot().setVisible(true);
-        } else if (m == ViewMode.SESSION) {
-            sessionsSection.getRoot().setVisible(true);
-        }
+        onResize(root.getWidth(), root.getHeight());
         root.invalidate();
     }
 
@@ -152,43 +133,37 @@ public class StatsPanelComponent {
         scroll.setBounds(0, 0, mainW, mainH);
         content.setBounds(0, 0, mainW, Math.max(mainH, 1000));
 
-        heroCard.setBounds(0, 0, mainW, 120);
-        tabBar.setBounds(0, 128, mainW, 50);
-        int tabTotal = 80 + 108 + 96;
-        int tabStart = (mainW - tabTotal) / 2;
-        tabOverview.setBounds(tabStart, 6, 80, 38);
-        tabStudents.setBounds(tabStart + 88, 6, 108, 38);
-        tabSessions.setBounds(tabStart + 204, 6, 96, 38);
+        int gap = 16;
+        int currentY = 0;
 
-        kpiSection.onResize(mainW);
-        kpiSection.getRoot().setBounds(0, 186, mainW, 116);
+        heroCard.setBounds(0, currentY, mainW, 64);
+        tabOverview.setBounds(16, 14, 120, 36);
+        tabStudents.setBounds(146, 14, 120, 36);
+        tabSessions.setBounds(276, 14, 140, 36);
+        currentY += 64 + gap;
 
-        filterSection.onResize(mainW, 160);
-        filterSection.getRoot().setBounds(0, 310, mainW, 160);
+        if (mode == ViewMode.OVERVIEW) {
+            kpiSection.onResize(mainW);
+            kpiSection.getRoot().setBounds(0, currentY, mainW, 110);
+            currentY += 110 + gap;
 
-        int contentY = 478;
-        int contentH = Math.max(280, mainH - contentY - 16);
+            filterSection.onResize(mainW, 140);
+            filterSection.getRoot().setBounds(0, currentY, mainW, 140);
+            currentY += 140 + gap;
+        }
 
+        int contentH = Math.max(400, mainH - currentY - 20); // Hauteur dynamique pour s'assurer que ça remplisse sans déborder mochement
+        
         sessionsSection.onResize(mainW, contentH);
         studentsSection.onResize(mainW, contentH);
-        sessionsSection.getRoot().setBounds(0, contentY, mainW, contentH);
-        studentsSection.getRoot().setBounds(0, contentY, mainW, contentH);
         studentDetail.onResize(mainW, contentH);
-        studentDetail.getRoot().setBounds(0, contentY, mainW, contentH);
         sessionDetail.onResize(mainW, contentH);
-        sessionDetail.getRoot().setBounds(0, contentY, mainW, contentH);
 
-        scroll.setContentHeight(contentY + contentH + 20);
-    }
+        sessionsSection.getRoot().setBounds(0, currentY, mainW, contentH);
+        studentsSection.getRoot().setBounds(0, currentY, mainW, contentH);
+        studentDetail.getRoot().setBounds(0, currentY, mainW, contentH);
+        sessionDetail.getRoot().setBounds(0, currentY, mainW, contentH);
 
-    private SurfaceCard card(int x, int y, int w, int h, Color bg) {
-        return new SurfaceCard(x, y, w, h, bg, new Color(52, 63, 92), 12);
-    }
-
-    private Label label(String text, int x, int y, int w, int h, int size, boolean bold, Color color) {
-        Label l = new Label(text, x, y, w, h);
-        l.setFont(new java.awt.Font("Dialog", bold ? java.awt.Font.BOLD : java.awt.Font.PLAIN, size));
-        l.setColor(color);
-        return l;
+        scroll.setContentHeight(currentY + contentH + 30);
     }
 }

@@ -26,24 +26,26 @@ public class StatsStudentsSection {
     private boolean darkMode = true;
 
     public StatsStudentsSection() {
-        container = new SurfaceCard(0, 0, 100, 100, new Color(22, 28, 39), new Color(52, 63, 92), 12);
+        container = new SurfaceCard(0, 0, 100, 100, new Color(22, 28, 39), new Color(0,0,0,0), 0); // Container Invisible
 
-        regCard = new SurfaceCard(0, 0, 100, 100, new Color(18, 24, 35), new Color(52, 63, 92), 10);
-        regTitle = new Label("Inscrits", 12, 10, 140, 18);
-        regTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 14));
+        regCard = new SurfaceCard(0, 0, 100, 100, new Color(18, 24, 35), new Color(52, 63, 92), 12);
+        regTitle = new Label("Étudiants Inscrits", 20, 16, 200, 22);
+        regTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 15));
         regTitle.setColor(new Color(239, 244, 252));
-        regScroll = new ScrollView(8, 36, 100, 100);
+        regScroll = new ScrollView(12, 50, 100, 100);
         regList = regScroll.getContent();
         regCard.addChild(regTitle); regCard.addChild(regScroll);
 
-        unregCard = new SurfaceCard(0, 0, 100, 100, new Color(18, 24, 35), new Color(52, 63, 92), 10);
-        unregTitle = new Label("Non Inscrits", 12, 10, 140, 18);
-        unregTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 14));
+        unregCard = new SurfaceCard(0, 0, 100, 100, new Color(18, 24, 35), new Color(52, 63, 92), 12);
+        unregTitle = new Label("Action Requise (Non inscrits)", 20, 16, 250, 22);
+        unregTitle.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 15));
         unregTitle.setColor(new Color(239, 68, 68));
-        search = new SearchField(12, 38, 200, 28, "Rechercher...");
+        
+        search = new SearchField(20, 48, 200, 36, "Chercher nom / login...");
         search.setColors(new Color(28, 36, 50), new Color(52, 63, 92), new Color(82, 107, 255), new Color(239, 244, 252), new Color(132, 144, 168));
         search.setOnChange(this::filterStudents);
-        unregScroll = new ScrollView(8, 74, 100, 100);
+        
+        unregScroll = new ScrollView(12, 94, 100, 100);
         unregList = unregScroll.getContent();
         unregCard.addChild(unregTitle); unregCard.addChild(search); unregCard.addChild(unregScroll);
 
@@ -55,11 +57,12 @@ public class StatsStudentsSection {
 
     public void setDarkMode(boolean dark) {
         darkMode = dark;
-        container.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
-        container.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
-        regCard.setBackground(dark ? new Color(18, 24, 35) : Color.WHITE);
-        unregCard.setBackground(dark ? new Color(18, 24, 35) : Color.WHITE);
-        container.invalidate();
+        container.setBackground(dark ? new Color(14, 18, 26) : Color.WHITE);
+        regCard.setBackground(dark ? new Color(22, 28, 39) : new Color(248, 250, 252));
+        unregCard.setBackground(dark ? new Color(22, 28, 39) : new Color(248, 250, 252));
+        Color bd = dark ? new Color(52, 63, 92) : new Color(226, 230, 238);
+        regCard.setBorderColor(bd); unregCard.setBorderColor(bd);
+        regTitle.setColor(dark ? Color.WHITE : new Color(15, 23, 42));
     }
 
     public void update(StatisticsService.StatsSummary s, List<User> reg, List<User> unreg) {
@@ -69,16 +72,17 @@ public class StatsStudentsSection {
         renderList(unregList, unregScroll, unregisteredStudents, false);
     }
 
-    private SurfaceCard studentCard(User u, int w) {
-        SurfaceCard card = new SurfaceCard(0, 0, w, 36, new Color(40, 50, 70), new Color(60, 72, 100), 6);
+    private SurfaceCard studentCard(User u, int w, boolean isUnreg) {
+        SurfaceCard card = new SurfaceCard(0, 0, w, 56, new Color(30, 40, 58), new Color(52, 63, 92), 8);
         card.setCursor(12);
         String name = u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : u.getLogin();
-        Label ln = new Label(name, 10, 4, w - 70, 16);
-        ln.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
-        ln.setColor(new Color(239, 244, 252));
-        Label li = new Label("@" + u.getLogin(), 10, 20, w - 70, 12);
-        li.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 10));
-        li.setColor(new Color(132, 144, 168));
+        Label ln = new Label(name, 16, 10, w - 30, 20);
+        ln.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 13));
+        ln.setColor(darkMode ? new Color(239, 244, 252) : new Color(15, 23, 42));
+        Label li = new Label("@" + u.getLogin(), 16, 32, w - 30, 16);
+        li.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        li.setColor(darkMode ? new Color(132, 144, 168) : new Color(100, 116, 139));
+        
         card.addChild(ln); card.addChild(li);
         card.getEventManager().register(UiEvent.Type.POINTER_UP, (c, e) -> onSelectStudent.accept(u));
         return card;
@@ -87,23 +91,22 @@ public class StatsStudentsSection {
     private void renderList(BaseComp list, ScrollView parentScroll, List<User> users, boolean registered) {
         clearChildren(list);
         if (users.isEmpty()) {
-            Label l = new Label("Aucun", 8, 8, 120, 20);
-            l.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+            Label l = new Label("Aucun étudiant", 16, 16, 200, 20);
+            l.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 13));
             l.setColor(new Color(100, 116, 139));
             list.addChild(l);
-            parentScroll.setContentHeight(60);
+            parentScroll.setContentHeight(80);
             return;
         }
-        int w = list.getWidth() - 10;
-        if (w < 50) w = 200;
+        int w = list.getWidth() - 16;
         int y = 0;
         for (User u : users) {
-            SurfaceCard card = studentCard(u, w);
-            card.setBounds(4, y, w, 36);
+            SurfaceCard card = studentCard(u, w, !registered);
+            card.setBounds(8, y, w, 56);
             list.addChild(card);
-            y += 40;
+            y += 66; // Espace entre les cartes
         }
-        parentScroll.setContentHeight(y + 8);
+        parentScroll.setContentHeight(Math.max(parentScroll.getHeight(), y + 20));
     }
 
     private void filterStudents() {
@@ -119,14 +122,21 @@ public class StatsStudentsSection {
 
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
-        int half = (w - 16) / 2;
-        int cardH = h - 16;
-        regCard.setBounds(0, 8, half, cardH);
-        unregCard.setBounds(half + 16, 8, w - half - 16, cardH);
-        regScroll.setBounds(8, 36, half - 16, cardH - 44);
-        unregScroll.setBounds(8, 74, w - half - 24, cardH - 82);
-        regList.setBounds(0, 0, half - 24, Math.max(cardH - 44, 200));
-        unregList.setBounds(0, 0, w - half - 32, Math.max(cardH - 82, 200));
+        int gap = 24;
+        int halfW = (w - gap) / 2;
+        
+        regCard.setBounds(0, 0, halfW, h);
+        unregCard.setBounds(halfW + gap, 0, halfW, h);
+        
+        regScroll.setBounds(0, 50, halfW, h - 60);
+        regList.setBounds(0, 0, halfW, Math.max(h - 60, 200));
+
+        search.setBounds(16, 48, halfW - 32, 36);
+        unregScroll.setBounds(0, 94, halfW, h - 104);
+        unregList.setBounds(0, 0, halfW, Math.max(h - 104, 200));
+        
+        renderList(regList, regScroll, registeredStudents, true);
+        filterStudents();
     }
 
     private void clearChildren(BaseComp p) { for (main.BaseComp c : new ArrayList<>(p.getChildrenList())) p.removeChild(c); }

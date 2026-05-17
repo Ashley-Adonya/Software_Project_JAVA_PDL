@@ -10,6 +10,7 @@ import main.BaseComp;
 
 public class AlertContainer extends SurfaceCard {
     private final BaseComp alertsList;
+    private List<AlertItem> currentAlerts = new ArrayList<>();
     private boolean darkMode = true;
 
     public AlertContainer() {
@@ -29,50 +30,54 @@ public class AlertContainer extends SurfaceCard {
             setBackground(Color.WHITE);
             setBorderColor(new Color(226, 230, 238));
         }
-        invalidate();
+        redrawAlerts(getWidth(), getHeight());
     }
 
     public void setAlerts(List<AlertItem> alerts) {
+        this.currentAlerts = alerts != null ? alerts : new ArrayList<>();
+        redrawAlerts(Math.max(getWidth(), 300), getHeight());
+    }
+
+    private void redrawAlerts(int width, int height) {
         clearChildren(alertsList);
-        if (alerts == null || alerts.isEmpty()) {
-            Label empty = new Label("Aucune alerte", 0, 0, getWidth() - 16, 24);
-            empty.setFont(new Font("Dialog", Font.PLAIN, 12));
+        alertsList.setBounds(0, 0, width, height);
+
+        if (currentAlerts.isEmpty()) {
+            Label empty = new Label("Aucune alerte pour le moment.", 16, 16, width - 32, 24);
+            empty.setFont(new Font("Dialog", Font.PLAIN, 13));
             empty.setColor(darkMode ? new Color(151, 166, 194) : new Color(100, 116, 139));
             alertsList.addChild(empty);
             return;
         }
 
         int y = 0;
-        for (AlertItem alert : alerts) {
-            SurfaceCard alertCard = new SurfaceCard(0, y, 100, 52,
+        int cardWidth = Math.max(10, width);
+        for (AlertItem alert : currentAlerts) {
+            SurfaceCard alertCard = new SurfaceCard(0, y, cardWidth, 58,
                 alert.type == AlertType.WARNING ? new Color(255, 245, 220) :
                 alert.type == AlertType.ERROR ? new Color(255, 240, 240) :
                 new Color(240, 248, 255),
-                new Color(52, 63, 92), 6);
+                new Color(52, 63, 92), 8);
 
-            Color iconColor = alert.type == AlertType.WARNING ? new Color(180, 120, 20) :
-                              alert.type == AlertType.ERROR ? new Color(196, 61, 61) :
-                              new Color(59, 130, 246);
+            Label msgLabel = new Label(alert.message, 16, 10, cardWidth - 32, 20);
+            msgLabel.setFont(new Font("Dialog", Font.BOLD, 13));
+            msgLabel.setColor(darkMode ? new Color(22, 28, 39) : new Color(27, 39, 56)); // Toujours foncé pour la lisibilité sur fond clair d'alerte
 
-            Label msgLabel = new Label(alert.message, 8, 6, 90, 20);
-            msgLabel.setFont(new Font("Dialog", Font.BOLD, 11));
-            msgLabel.setColor(darkMode ? new Color(235, 241, 255) : new Color(27, 39, 56));
-
-            Label detailLabel = new Label(alert.detail == null ? "" : alert.detail, 8, 28, 90, 18);
-            detailLabel.setFont(new Font("Dialog", Font.PLAIN, 10));
-            detailLabel.setColor(darkMode ? new Color(151, 166, 194) : new Color(100, 116, 139));
+            Label detailLabel = new Label(alert.detail == null ? "" : alert.detail, 16, 32, cardWidth - 32, 18);
+            detailLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+            detailLabel.setColor(new Color(71, 85, 105));
 
             alertCard.addChild(msgLabel);
             alertCard.addChild(detailLabel);
             alertsList.addChild(alertCard);
-            y += 58;
+            y += 66; // Espacement de 8px
         }
-        alertsList.setBounds(0, 0, 100, Math.max(1, y));
         invalidate();
     }
 
     public void onResize(int width, int height) {
         setBounds(0, 0, width, height);
+        redrawAlerts(width, height);
     }
 
     private void clearChildren(BaseComp parent) {
@@ -85,15 +90,9 @@ public class AlertContainer extends SurfaceCard {
         public AlertType type;
         public String message;
         public String detail;
-
         public AlertItem(AlertType type, String message, String detail) {
-            this.type = type;
-            this.message = message;
-            this.detail = detail;
+            this.type = type; this.message = message; this.detail = detail;
         }
     }
-
-    public static enum AlertType {
-        INFO, WARNING, ERROR
-    }
+    public static enum AlertType { INFO, WARNING, ERROR }
 }

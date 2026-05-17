@@ -20,7 +20,7 @@ public class DominanteCardAdmin extends SurfaceCard {
     private final Button deleteButton;
     private boolean darkMode;
 
-    public DominanteCardAdmin(Runnable onEdit, Runnable onDelete) {
+    public DominanteCardAdmin(Runnable onEdit, Runnable onDelete, BaseWindow window) {
         super(0, 0, 100, 100, Color.WHITE, new Color(226, 230, 238), 12);
         this.darkMode = true;
 
@@ -53,7 +53,13 @@ public class DominanteCardAdmin extends SurfaceCard {
         this.editButton.setBackground(new Color(240, 243, 248));
         this.editButton.setForeground(new Color(67, 76, 91));
 
-        this.deleteButton = new Button("Suppr", 0, 0, 74, 28, onDelete);
+        // Bouton suppr avec confirmation
+        this.deleteButton = new Button("Suppr", 0, 0, 74, 28, () -> {
+            ConfirmDeleteModal confirmModal = new ConfirmDeleteModal(window);
+            confirmModal.setMessage("Êtes-vous sûr de vouloir supprimer cette dominante ? Cette action est irréversible.");
+            confirmModal.setOnConfirm(onDelete);
+            confirmModal.show();
+        });
         this.deleteButton.setBackground(new Color(255, 240, 240));
         this.deleteButton.setForeground(new Color(196, 61, 61));
 

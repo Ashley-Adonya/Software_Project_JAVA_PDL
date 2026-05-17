@@ -22,15 +22,15 @@ public class StatsSessionsSection {
     public StatsSessionsSection() {
         container = new SurfaceCard(0, 0, 100, 100, new Color(22, 28, 39), new Color(52, 63, 92), 12);
 
-        title = new Label("Sessions", 16, 14, 220, 22);
-        title.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 15));
+        title = new Label("Répartition dans les Sessions", 20, 20, 300, 24);
+        title.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 16));
         title.setColor(new Color(239, 244, 252));
 
-        scroll = new ScrollView(8, 44, 100, 100);
+        scroll = new ScrollView(0, 60, 100, 100);
         content = scroll.getContent();
 
-        emptyLabel = new Label("Aucune session definie", 8, 8, 200, 24);
-        emptyLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
+        emptyLabel = new Label("Aucune session définie pour cette campagne.", 20, 10, 300, 24);
+        emptyLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 13));
         emptyLabel.setColor(new Color(100, 116, 139));
 
         container.addChild(title); container.addChild(scroll);
@@ -43,61 +43,66 @@ public class StatsSessionsSection {
         darkMode = dark;
         container.setBackground(dark ? new Color(22, 28, 39) : Color.WHITE);
         container.setBorderColor(dark ? new Color(52, 63, 92) : new Color(226, 230, 238));
+        title.setColor(dark ? Color.WHITE : new Color(15, 23, 42));
         container.invalidate();
     }
 
     public void refresh(StatisticsService.StatsSummary s) {
         clearChildren(content);
         if (s.sessionDetails == null || s.sessionDetails.isEmpty()) {
-            content.addChild(emptyLabel); scroll.setContentHeight(40); return;
+            content.addChild(emptyLabel); scroll.setContentHeight(60); return;
         }
-        int y = 8;
+        int y = 0;
         int scW = scroll.getWidth();
-        int cardW = scW > 48 ? scW - 16 : 300;
-        for (StatisticsService.SessionDetail detail : s.sessionDetails) {
-            SurfaceCard card = new SurfaceCard(8, y, cardW, 72,
+        // Deux colonnes si la place le permet
+        int cols = scW > 700 ? 2 : 1; 
+        int gap = 16;
+        int cardW = (scW - (cols + 1) * gap) / cols;
+
+        for (int i = 0; i < s.sessionDetails.size(); i++) {
+            StatisticsService.SessionDetail detail = s.sessionDetails.get(i);
+            
+            SurfaceCard card = new SurfaceCard(0, 0, cardW, 86,
                 detail.isFull ? new Color(255, 245, 220) : new Color(30, 40, 58),
                 new Color(60, 72, 100), 8);
             card.setCursor(12);
 
             String name = safe(detail.sessionTitle);
-            Label nameLabel = new Label(name, 14, 10, cardW - 100, 20);
+            Label nameLabel = new Label(name, 16, 14, cardW - 130, 20);
             nameLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 14));
-            nameLabel.setColor(detail.isFull ? new Color(180, 120, 20) : new Color(239, 244, 252));
+            nameLabel.setColor(detail.isFull ? new Color(180, 120, 20) : (darkMode ? new Color(239, 244, 252) : new Color(15, 23, 42)));
 
             int fill = detail.allocated;
             int cap = detail.capacity;
             int pct = cap > 0 ? (fill * 100) / cap : 0;
-            Label infoLabel = new Label(detail.dominanteName + " | " + fill + "/" + cap + " places", 14, 36, 220, 16);
+            
+            Label infoLabel = new Label(detail.dominanteName + "  |  " + detail.timeSlot, 16, 38, cardW - 100, 16);
             infoLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
-            infoLabel.setColor(new Color(132, 144, 168));
+            infoLabel.setColor(darkMode ? new Color(132, 144, 168) : new Color(100, 116, 139));
 
-            Label timeLabel = new Label(detail.timeSlot, cardW - 160, 10, 140, 16);
-            timeLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
-            timeLabel.setColor(new Color(132, 144, 168));
-
-            Label barLabel = new Label(buildBar(pct), cardW - 150, 36, 130, 18);
-            barLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 11));
+            // Barre de pourçentage simulée typographique
+            Label barLabel = new Label(fill + " / " + cap + " inscrits  (" + pct + "%)", 16, 60, 200, 18);
+            barLabel.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 12));
             barLabel.setColor(detail.isFull ? new Color(180, 120, 20) : new Color(34, 197, 94));
 
-            card.addChild(nameLabel); card.addChild(infoLabel);
-            card.addChild(timeLabel); card.addChild(barLabel);
+            card.addChild(nameLabel); card.addChild(infoLabel); card.addChild(barLabel);
             card.getEventManager().register(UiEvent.Type.POINTER_UP, (c, e) -> onSelectSession.accept(detail));
+            
+            int col = i % cols;
+            int row = i / cols;
+            int posX = gap + col * (cardW + gap);
+            int posY = 10 + row * (86 + gap);
+            card.setBounds(posX, posY, cardW, 86);
+            
             content.addChild(card);
-            y += 80;
+            y = Math.max(y, posY + 86);
         }
-        scroll.setContentHeight(y + 8);
-    }
-
-    private String buildBar(int pct) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 16; i++) sb.append(i < (pct / 6) ? "\u2588" : "\u2591");
-        return sb.append(" ").append(pct).append("%").toString();
+        scroll.setContentHeight(y + 20);
     }
 
     public void onResize(int w, int h) {
         container.setBounds(0, 0, w, h);
-        scroll.setBounds(8, 44, w - 16, h - 52);
+        scroll.setBounds(0, 56, w, h - 56);
     }
 
     private void clearChildren(BaseComp p) { for (main.BaseComp c : new ArrayList<>(p.getChildrenList())) p.removeChild(c); }

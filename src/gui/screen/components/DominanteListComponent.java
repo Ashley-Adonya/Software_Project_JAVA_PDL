@@ -91,7 +91,16 @@ public class DominanteListComponent {
         }
 
         for (Dominante d : list) {
-            DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(d), () -> {});
+            DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(d), () -> {
+                // Call the actual delete service
+                ServiceResult result = dominanteService.deleteById(d.getId());
+                if (result.isSuccess()) {
+                    refresh(); // Refresh the list after successful deletion
+                } else {
+                    // Show error message - for now just print to console
+                    System.err.println("Error deleting dominante: " + result.getMessage());
+                }
+            }, window);
             card.setDarkMode(darkMode);
             Color accent = parseDominanteColor(d.getColor());
             int x = (idx % 2) * (cardW + gap);

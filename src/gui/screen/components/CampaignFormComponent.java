@@ -144,8 +144,8 @@ public class CampaignFormComponent {
             feedbackLabel.setText("Aucune campagne active.");
             return;
         }
-        boolean ok = campaignService.updateStatus(currentCampaign.getId(), newStatus);
-        if (ok) {
+        ServiceResult result = campaignService.changeStatus(currentCampaign.getId(), newStatus);
+        if (result.isSuccess()) {
             currentCampaign.setStatus(newStatus);
             updateStatusLabel(newStatus);
             updateButtonVisibility(newStatus);
@@ -153,7 +153,7 @@ public class CampaignFormComponent {
             feedbackLabel.setText("Statut mis a jour : " + newStatus);
         } else {
             feedbackLabel.setColor(new Color(239, 68, 68));
-            feedbackLabel.setText("Echec mise a jour statut.");
+            feedbackLabel.setText("Echec mise a jour statut: " + result.getMessage());
         }
     }
 

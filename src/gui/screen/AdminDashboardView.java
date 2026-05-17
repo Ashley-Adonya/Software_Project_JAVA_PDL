@@ -39,6 +39,7 @@ public class AdminDashboardView {
     private final AdminManageSessionModal manageSessionModal;
     private final AdminDominanteModal dominanteModals;
     private final AdminStudentRegistrationModal registrationModal;
+    private final Runnable onLogout;
     final SidebarMenu sidebar;
     final PageHeader header;
     final PrimaryButton refreshButton;
@@ -48,9 +49,10 @@ public class AdminDashboardView {
     private int mainW = 320;
     private Color PAGE_BG = new Color(14, 18, 26);
 
-    public AdminDashboardView(BaseWindow window, User user) {
+    public AdminDashboardView(BaseWindow window, User user, Runnable onLogout) {
         this.window = window;
         this.user = user;
+        this.onLogout = onLogout;
         campaignService = new CampaignService(); sessionService = new SessionService();
         dominanteService = new DominanteService(); statisticsService = new StatisticsService();
         registrationService = new RegistrationService(); registrationDAO = new dao.RegistrationDAO();
@@ -64,7 +66,7 @@ public class AdminDashboardView {
         items.add(new SidebarMenu.Item("campagne", "Campagne"));
         items.add(new SidebarMenu.Item("stats", "Statistiques"));
         sidebar = new SidebarMenu("Administration", displayName(), items, "dashboard",
-            sectionManager::setSection, window::closeTopLayer, this::toggleTheme);
+            sectionManager::setSection, onLogout, this::toggleTheme);
         header = new PageHeader("Tableau de bord", "Vue d'ensemble");
         refreshButton = new PrimaryButton("Actualiser", 0, 0, 110, 28, this::refreshCurrent);
         refreshButton.setBackground(new Color(44, 54, 76));
@@ -137,12 +139,12 @@ public class AdminDashboardView {
     void refreshDashboard() { dashboardRoot.refreshDashboardRoot(activeCampaign); }
     void requestRender() { window.requestRenderIfNeeded(); }
     private void refreshCurrent() { refreshAll(); sectionManager.refreshActiveSection(); }
-    void refreshAll() { 
-        activeCampaign = campaignResolver.resolveActiveCampaign();
-        refreshDashboard();   
-        refreshStats();
-        refreshDominantes(); refreshSessions(); refreshCampagne();
-    }
+    void refreshAll() {
+    activeCampaign = campaignResolver.resolveActiveCampaign();
+    refreshDashboard();
+    refreshCampagne();
+    refreshStats();
+}
     private void saveCampaign(Campaign c) {
         if (c == null) return;
         int id = campaignService.createCampaign(c);

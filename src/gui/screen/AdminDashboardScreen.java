@@ -20,7 +20,7 @@ public class AdminDashboardScreen implements AppScreen {
     private final AdminDashboardView view;
 
     public AdminDashboardScreen(BaseWindow window, User user, Runnable onLogout) {
-        this.view = new AdminDashboardView(window, user);
+        this.view = new AdminDashboardView(window, user, onLogout);
     }
 
     @Override
