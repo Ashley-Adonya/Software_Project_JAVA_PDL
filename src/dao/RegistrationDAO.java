@@ -20,7 +20,7 @@ public class RegistrationDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setInt(1, registration.getCampaignId());
             ps.setInt(2, registration.getStudentId());
             ps.setInt(3, registration.getSessionId());
@@ -33,7 +33,7 @@ public class RegistrationDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("RegistrationDAO.create: " + e.getMessage());

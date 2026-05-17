@@ -202,7 +202,7 @@ public class UserDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setString(1, user.getLogin());
             ps.setString(2, user.getPassword());
             ps.setString(3, user.getFullName());
@@ -212,7 +212,7 @@ public class UserDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("UserDAO.create: " + e.getMessage());

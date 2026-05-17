@@ -22,12 +22,13 @@ public class SessionDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setInt(1, session.getCampaignId());
             ps.setInt(2, session.getDominanteId());
             ps.setString(3, session.getTitle());
             ps.setString(4, session.getRoom());
-            ps.setString(5, session.getSessionDate());
+            java.sql.Date sqlDate = java.sql.Date.valueOf(session.getSessionDate()); 
+            ps.setDate(5, sqlDate);
             ps.setInt(6, session.getStartMinute());
             ps.setInt(7, session.getEndMinute());
             ps.setInt(8, session.getCapacity());
@@ -35,7 +36,7 @@ public class SessionDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("SessionDAO.create: " + e.getMessage());

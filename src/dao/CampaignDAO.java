@@ -20,7 +20,7 @@ public class CampaignDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setString(1, campaign.getName());
             ps.setString(2, campaign.getPromo());
             ps.setString(3, campaign.getRegistrationDay());
@@ -32,7 +32,7 @@ public class CampaignDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("CampaignDAO.create: " + e.getMessage());

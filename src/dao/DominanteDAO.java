@@ -20,7 +20,7 @@ public class DominanteDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setString(1, dominante.getCode());
             ps.setString(2, dominante.getName());
             ps.setString(3, dominante.getResponsibleName());
@@ -30,7 +30,7 @@ public class DominanteDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("DominanteDAO.create: " + e.getMessage());

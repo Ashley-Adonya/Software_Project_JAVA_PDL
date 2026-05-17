@@ -20,7 +20,7 @@ public class ChoiceDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            ps = conn.prepareStatement(sql, new String[]{"ID"})
             ps.setInt(1, choice.getCampaignId());
             ps.setInt(2, choice.getStudentId());
             ps.setInt(3, choice.getSessionId());
@@ -28,7 +28,7 @@ public class ChoiceDAO {
             ps.executeUpdate();
             keys = ps.getGeneratedKeys();
             if (keys.next()) {
-                return keys.getInt(1);
+                return keys.getInt("ID");
             }
         } catch (Exception e) {
             System.err.println("ChoiceDAO.create: " + e.getMessage());
