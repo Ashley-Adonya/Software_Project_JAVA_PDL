@@ -39,6 +39,23 @@ public class Campaign {
         this.createdBy = createdBy;
     }
 
+    public Campaign(int id, String name, String promo, String registrationDay, String startDate, String endDate, int maxChoices, String status, int createdBy, String openedAt, String closedAt, String processedAt, String validatedAt, String archivedAt) {
+        this.id = id;
+        this.name = name;
+        this.promo = promo;
+        this.registrationDay = registrationDay;
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.maxChoices = maxChoices;
+        this.status = status;
+        this.createdBy = createdBy;
+        this.openedAt = openedAt;
+        this.closedAt = closedAt;
+        this.processedAt = processedAt;
+        this.validatedAt = validatedAt;
+        this.archivedAt = archivedAt;
+    }
+
     public int getId() { 
         return id; 
     }

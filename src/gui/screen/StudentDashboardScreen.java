@@ -91,7 +91,7 @@ public class StudentDashboardScreen implements AppScreen {
         this.user = user;
         // this.onLogout = onLogout;
 
-        this.campaignService = new CampaignService();
+        this.campaignService = new CampaignService(user);
         this.sessionService = new SessionService();
         this.choiceService = new ChoiceService();
 

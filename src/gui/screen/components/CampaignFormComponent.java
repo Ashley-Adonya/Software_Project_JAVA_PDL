@@ -39,9 +39,9 @@ public class CampaignFormComponent {
     private CampaignService campaignService;
     private AssignmentService assignmentService;
 
-    public CampaignFormComponent(BaseWindow window) {
+    public CampaignFormComponent(BaseWindow window, User currentUser) {
         this.window = window;
-        this.campaignService = new CampaignService();
+        this.campaignService = new CampaignService(currentUser);
         this.assignmentService = new AssignmentService();
         this.root = new BaseComp(null);
 

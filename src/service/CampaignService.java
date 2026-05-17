@@ -2,6 +2,7 @@ package service;
 
 import dao.CampaignDAO;
 import model.Campaign;
+import model.User;
 import java.util.List;
 
 /**

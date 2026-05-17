@@ -78,7 +78,7 @@ public class AdminDashboardView {
             () -> sectionManager.setSection("dominantes"), () -> sectionManager.setSection("sessions"),
             () -> sectionManager.setSection("campagne"), () -> sectionManager.setSection("stats"));
         sessionListComponent = new SessionListComponent(window, sessionService, dominanteService, this);
-        campaignFormComponent = new CampaignFormComponent(window);
+        campaignFormComponent = new CampaignFormComponent(window, user);
         dominanteListComponent = new DominanteListComponent(window, dominanteService, this);
         statsPanelComponent = new StatsPanelComponent(window, statisticsService);
 
