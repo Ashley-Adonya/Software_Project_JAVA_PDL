@@ -47,6 +47,7 @@ public class StatisticsService {
         public int totalStudents;
         public int registeredStudents;
         public int unregisteredStudents;
+        public int activeDominantes;
         public List<SessionDetail> sessionDetails = new ArrayList<>();
     }
 
@@ -108,6 +109,7 @@ public class StatisticsService {
             }
             stats.completeSessions = completeSessions;
             stats.totalCapacity = totalCapacity;
+            stats.activeDominantes = domMap.size();
             stats.totalAllocated = totalAllocated;
             stats.averageFillRate = totalCapacity > 0 ? (totalAllocated * 100.0) / totalCapacity : 0;
             List<User> allStudents = userDAO.findAllStudentsByPromo(promo);

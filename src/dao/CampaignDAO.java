@@ -20,7 +20,7 @@ public class CampaignDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, new String[]{"ID"})
+            ps = conn.prepareStatement(sql, new String[] { "ID" });
             ps.setString(1, campaign.getName());
             ps.setString(2, campaign.getPromo());
             ps.setString(3, campaign.getRegistrationDay());

@@ -137,7 +137,12 @@ public class AdminDashboardView {
     void refreshDashboard() { dashboardRoot.refreshDashboardRoot(activeCampaign); }
     void requestRender() { window.requestRenderIfNeeded(); }
     private void refreshCurrent() { refreshAll(); sectionManager.refreshActiveSection(); }
-    void refreshAll() { activeCampaign = campaignResolver.resolveActiveCampaign(); }
+    void refreshAll() { 
+        activeCampaign = campaignResolver.resolveActiveCampaign();
+        refreshDashboard();   
+        refreshStats();
+        refreshDominantes(); refreshSessions(); refreshCampagne();
+    }
     private void saveCampaign(Campaign c) {
         if (c == null) return;
         int id = campaignService.createCampaign(c);

@@ -22,7 +22,7 @@ public class SessionDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, new String[]{"ID"})
+            ps = conn.prepareStatement(sql, new String[] { "ID" });
             ps.setInt(1, session.getCampaignId());
             ps.setInt(2, session.getDominanteId());
             ps.setString(3, session.getTitle());

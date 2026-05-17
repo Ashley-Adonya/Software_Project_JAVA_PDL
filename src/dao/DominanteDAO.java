@@ -20,7 +20,7 @@ public class DominanteDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, new String[]{"ID"})
+            ps = conn.prepareStatement(sql);
             ps.setString(1, dominante.getCode());
             ps.setString(2, dominante.getName());
             ps.setString(3, dominante.getResponsibleName());
@@ -171,13 +171,13 @@ public class DominanteDAO {
 
     private Dominante mapDominante(ResultSet rs) throws Exception {
         return new Dominante(
-                rs.getInt("id"),
-                rs.getString("code"),
-                rs.getString("name"),
-                rs.getString("responsible_name"),
-                rs.getString("description"),
-                rs.getString("color"),
-                rs.getInt("is_active") == 1
+                rs.getInt(1),
+                rs.getString(2),
+                rs.getString(3),
+                rs.getString(4),
+                rs.getString(5),
+                rs.getString(6),
+                rs.getInt(7) == 1
         );
     }
 

@@ -58,10 +58,10 @@ public class AdminSessionModal {
             edit ? safe(existing.getSessionDate()) : "", 254, row1Y, 234, 54);
         
         int row2Y = 70;
-        ReusableLabeledInput startInput = new ReusableLabeledInput("Debut (min)",
-            edit ? String.valueOf(existing.getStartMinute()) : "510", 16, row2Y, 110, 54);
-        ReusableLabeledInput endInput = new ReusableLabeledInput("Fin (min)",
-            edit ? String.valueOf(existing.getEndMinute()) : "570", 132, row2Y, 110, 54);
+        ReusableLabeledInput startInput = new ReusableLabeledInput("Debut (HH:mm)",
+            edit ? minutesToHHmm(existing.getStartMinute()) : "08:30", 16, row2Y, 110, 54);
+        ReusableLabeledInput endInput = new ReusableLabeledInput("Fin (HH:mm)",
+            edit ? minutesToHHmm(existing.getEndMinute()) : "12:30", 132, row2Y, 110, 54);
         ReusableLabeledInput roomInput = new ReusableLabeledInput("Salle",
             edit ? safe(existing.getRoom()) : "", 248, row2Y, 240, 54);
         ReusableLabeledInput capacityInput = new ReusableLabeledInput("Capacite",
@@ -96,8 +96,12 @@ public class AdminSessionModal {
             slot.setDominanteId(domId);
             slot.setTitle(titleInput.getValue());
             slot.setSessionDate(dateInput.getValue());
-            try { slot.setStartMinute(Integer.parseInt(startInput.getValue())); } catch (Exception e) {}
-            try { slot.setEndMinute(Integer.parseInt(endInput.getValue())); } catch (Exception e) {}
+            try { slot.setStartMinute(parseHHmm(startInput.getValue())); } catch (Exception e) {
+                feedback.setText("Format heure invalide (HH:mm attendu)"); return;
+            }
+            try { slot.setEndMinute(parseHHmm(endInput.getValue())); } catch (Exception e) {
+                feedback.setText("Format heure invalide (HH:mm attendu)"); return;
+            }
             slot.setRoom(roomInput.getValue());
             try { slot.setCapacity(Integer.parseInt(capacityInput.getValue())); } catch (Exception e) {}
             
@@ -144,4 +148,16 @@ public class AdminSessionModal {
     }
     
     private String safe(String value) { return value == null || value.isBlank() ? "-" : value; }
+
+    private String minutesToHHmm(int totalMinutes) {
+        return String.format("%02d:%02d", totalMinutes / 60, totalMinutes % 60);
+    }
+
+    private int parseHHmm(String value) {
+        if (value == null || !value.contains(":")) throw new IllegalArgumentException();
+        String[] parts = value.trim().split(":");
+        int h = Integer.parseInt(parts[0].trim());
+        int m = Integer.parseInt(parts[1].trim());
+        return h * 60 + m;
+    }
 }

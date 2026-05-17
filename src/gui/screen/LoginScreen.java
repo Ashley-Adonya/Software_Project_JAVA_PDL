@@ -76,7 +76,6 @@ public class LoginScreen implements AppScreen {
         this.themeButton = new PrimaryButton("Mode clair", 0, 0, 148, 30, this::toggleTheme);
         this.themeButton.setBackground(new Color(40, 51, 73));
 
-
         card.addChild(cardTitle);
         card.addChild(cardSubtitle);
         card.addChild(themeButton);
@@ -86,65 +85,77 @@ public class LoginScreen implements AppScreen {
         card.addChild(loginButton);
     }
 
+    private class LoginLayout {
+        void mount() {
+            BaseComp content = window.getContent();
+            content.setStyleManager(new style.StyleManager(PAGE_BG, 0, content.getWidth(), content.getHeight(), 0, 0, "absolute"));
+
+            clearChildren(content);
+            content.addChild(appLogo);
+            content.addChild(appSubtitle);
+            content.addChild(card);
+
+            onResize();
+        }
+
+        void onResize() {
+            layoutResponsive();
+        }
+
+        private void clearChildren(BaseComp parent) {
+            List<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList());
+            for (BaseComp child : snapshot) {
+                parent.removeChild(child);
+            }
+        }
+
+        private void layoutResponsive() {
+            BaseComp content = window.getContent();
+            int width = content.getWidth();
+            int height = content.getHeight();
+
+            int horizontalPadding = width < 560 ? 20 : 30;
+            int cardWidth = Math.min(390, Math.max(310, width - (horizontalPadding * 2)));
+            int cardHeight = 356;
+
+            int headerTop = Math.max(24, (height / 2) - 260);
+            int logoWidth = width < 560 ? 210 : 260;
+            int logoHeight = width < 560 ? 78 : 96;
+            int logoX = (width - logoWidth) / 2;
+            appLogo.setBounds(logoX, headerTop, logoWidth, logoHeight);
+
+            appSubtitle.setBounds((width - 360) / 2, headerTop + logoHeight + 8, 360, 20);
+
+            int cardX = (width - cardWidth) / 2;
+            int cardY = headerTop + logoHeight + 46;
+            card.setBounds(cardX, cardY, cardWidth, cardHeight);
+
+            int cardInnerX = 20;
+            int fieldWidth = cardWidth - 40;
+            cardTitle.setBounds(cardInnerX, 18, fieldWidth, 24);
+            cardSubtitle.setBounds(cardInnerX, 42, fieldWidth, 18);
+            themeButton.setBounds(cardInnerX, 68, 148, 30);
+
+            emailInput.setBounds(cardInnerX, 108, fieldWidth, 64);
+            passwordInput.setBounds(cardInnerX, 178, fieldWidth, 64);
+            feedbackLabel.setBounds(cardInnerX, 250, fieldWidth, 18);
+            loginButton.setBounds(cardInnerX, 278, fieldWidth, 40);
+
+            window.invalidateAll();
+            window.requestRenderIfNeeded();
+        }
+    }
+
+    private final LoginLayout layout = new LoginLayout();
+
     @Override
     public void mount() {
-        BaseComp content = window.getContent();
-        content.setStyleManager(new style.StyleManager(PAGE_BG, 0, content.getWidth(), content.getHeight(), 0, 0, "absolute"));
-
-        clearChildren(content);
-        content.addChild(appLogo);
-        content.addChild(appSubtitle);
-        content.addChild(card);
-
-        onResize();
+        layout.mount();
     }
 
     @Override
     public void onResize() {
-        layoutResponsive();
-    }
-
-    private void clearChildren(BaseComp parent) {
-        List<BaseComp> snapshot = new ArrayList<>(parent.getChildrenList());
-        for (BaseComp child : snapshot) {
-            parent.removeChild(child);
-        }
-    }
-
-    private void layoutResponsive() {
-        BaseComp content = window.getContent();
-        int width = content.getWidth();
-        int height = content.getHeight();
-
-        int horizontalPadding = width < 560 ? 20 : 30;
-        int cardWidth = Math.min(390, Math.max(310, width - (horizontalPadding * 2)));
-        int cardHeight = 356;
-
-        int headerTop = Math.max(24, (height / 2) - 260);
-        int logoWidth = width < 560 ? 210 : 260;
-        int logoHeight = width < 560 ? 78 : 96;
-        int logoX = (width - logoWidth) / 2;
-        appLogo.setBounds(logoX, headerTop, logoWidth, logoHeight);
-
-        appSubtitle.setBounds((width - 360) / 2, headerTop + logoHeight + 8, 360, 20);
-
-        int cardX = (width - cardWidth) / 2;
-        int cardY = headerTop + logoHeight + 46;
-        card.setBounds(cardX, cardY, cardWidth, cardHeight);
-
-        int cardInnerX = 20;
-        int fieldWidth = cardWidth - 40;
-        cardTitle.setBounds(cardInnerX, 18, fieldWidth, 24);
-        cardSubtitle.setBounds(cardInnerX, 42, fieldWidth, 18);
-        themeButton.setBounds(cardInnerX, 68, 148, 30);
-
-        emailInput.setBounds(cardInnerX, 108, fieldWidth, 64);
-        passwordInput.setBounds(cardInnerX, 178, fieldWidth, 64);
-        feedbackLabel.setBounds(cardInnerX, 250, fieldWidth, 18);
-        loginButton.setBounds(cardInnerX, 278, fieldWidth, 40);
-
-        window.invalidateAll();
-        window.requestRenderIfNeeded();
+        layout.onResize();
     }
 
     private void handleLogin() {
@@ -225,5 +236,3 @@ public class LoginScreen implements AppScreen {
         window.requestRenderIfNeeded();
     }
 }
-
-

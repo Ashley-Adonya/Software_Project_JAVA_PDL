@@ -20,7 +20,7 @@ public class ChoiceDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, new String[]{"ID"})
+            ps = conn.prepareStatement(sql, new String[] { "ID" });
             ps.setInt(1, choice.getCampaignId());
             ps.setInt(2, choice.getStudentId());
             ps.setInt(3, choice.getSessionId());

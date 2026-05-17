@@ -112,9 +112,10 @@ public class AdminDashboardRoot extends BaseComp {
             statusLabel.setText("Periode: " + safe(activeCampaign.getRegistrationDay()) + " | Statut: " + safe(activeCampaign.getStatus()));
             StatisticsService.StatsSummary stats = statisticsService.getStatsForCampaign(activeCampaign.getId(), activeCampaign.getPromo());
             if (sessionsKpi != null) {
-                sessionsKpi.setValue(String.valueOf(stats.totalSessions));
-                fillKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
-                studentsKpi.setValue(String.valueOf(stats.registeredStudents));
+            sessionsKpi.setValue(String.valueOf(stats.totalSessions));
+            dominantesKpi.setValue(String.valueOf(stats.activeDominantes));
+            fillKpi.setValue(String.format("%.1f%%", stats.averageFillRate));
+            studentsKpi.setValue(String.valueOf(stats.registeredStudents));
             }
         }
         if (alertContainer != null) {
@@ -162,9 +163,8 @@ public class AdminDashboardRoot extends BaseComp {
             shortcutCard.setBounds(0, 294, width, 96);
             if (goDominantes != null) { goDominantes.setBounds(16, 38, 112, 32); goSessions.setBounds(134, 38, 100, 32); goCampagne.setBounds(240, 38, 104, 32); goStats.setBounds(350, 38, 86, 32); }
         }
-        if (noteCard != null) noteCard.setBounds(0, 402, width, 74);
-        if (alertContainer != null) alertContainer.setBounds(0, 390, width, 12);
-    }
+if (alertContainer != null) alertContainer.setBounds(0, 402, width, 90);
+if (noteCard != null) noteCard.setBounds(0, 504, width, 60);    }
 
     private String safe(String value) { return value == null || value.isBlank() ? "-" : value; }
 }

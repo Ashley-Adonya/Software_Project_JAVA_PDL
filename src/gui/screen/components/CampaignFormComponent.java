@@ -1,5 +1,6 @@
 package gui.screen.components;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.util.function.Consumer;
 
@@ -10,41 +11,46 @@ import gui.components.SurfaceCard;
 import main.BaseComp;
 import main.BaseWindow;
 import model.Campaign;
+import service.AssignmentService;
+import service.CampaignService;
+import service.ServiceResult;
 
-/**
- * Composant de formulaire de configuration de campagne.
- * Permet l'affichage et la modification des paramètres de campagne en cours
- * (nom, dates, limite de choix) avec validation client et retours utilisateur.
- * 
- * Responsabilités :
- * - Rendu du formulaire de saisie avec champs préremplis
- * - Validation des données avant submission
- * - Callback de sauvegarde pour intégration métier
- * - Affichage des messages de retour (succès/erreur)
- * - Gestion du redimensionnement
- * 
- * @author Sado Adonya & VIEYRA Kolawole
- * @version 1.0
- */
 public class CampaignFormComponent {
+    private final BaseWindow window;
     private final BaseComp root;
     private final SurfaceCard formCard;
+    private final SurfaceCard statusCard;
     private final ReusableLabeledInput campaignNameInput;
     private final ReusableLabeledInput registrationDateInput;
     private final ReusableLabeledInput maxChoicesInput;
     private final ReusableLabeledInput startDateInput;
     private final ReusableLabeledInput endDateInput;
     private final PrimaryButton saveCampaignButton;
+    private final PrimaryButton openBtn;
+    private final PrimaryButton closeBtn;
+    private final PrimaryButton autoBtn;
+    private final PrimaryButton validateBtn;
+    private final PrimaryButton archiveBtn;
+    private final Label statusValueLabel;
     private final Label feedbackLabel;
 
     private Consumer<Campaign> onSave = c -> {};
+    private Campaign currentCampaign;
+    private CampaignService campaignService;
+    private AssignmentService assignmentService;
 
     public CampaignFormComponent(BaseWindow window) {
+        this.window = window;
+        this.campaignService = new CampaignService();
+        this.assignmentService = new AssignmentService();
         this.root = new BaseComp(null);
-        this.formCard = new SurfaceCard(0, 0, 100, 310, new java.awt.Color(22,28,39), new java.awt.Color(48,60,82), 12);
+
+        // --- Formulaire de création/modification ---
+        this.formCard = new SurfaceCard(0, 0, 100, 310,
+            new java.awt.Color(22, 28, 39), new java.awt.Color(48, 60, 82), 12);
 
         this.campaignNameInput = new ReusableLabeledInput("Nom de la campagne", "", 16, 42, 380, 62);
-        this.registrationDateInput = new ReusableLabeledInput("Date inscript (dd/MM/yyyy)", "", 16, 108, 200, 62);
+        this.registrationDateInput = new ReusableLabeledInput("Date inscript (yyyy-MM-dd)", "", 16, 108, 200, 62);
         this.maxChoicesInput = new ReusableLabeledInput("Nombre max de choix", "5", 232, 108, 164, 62);
         this.startDateInput = new ReusableLabeledInput("Date de debut (yyyy-MM-dd)", "", 16, 174, 200, 62);
         this.endDateInput = new ReusableLabeledInput("Date de fin (yyyy-MM-dd)", "", 232, 174, 200, 62);
@@ -53,7 +59,8 @@ public class CampaignFormComponent {
             Campaign c = new Campaign();
             c.setName(campaignNameInput.getValue());
             c.setRegistrationDay(registrationDateInput.getValue());
-            try { c.setMaxChoices(Integer.parseInt(maxChoicesInput.getValue())); } catch (Exception e) { c.setMaxChoices(0); }
+            try { c.setMaxChoices(Integer.parseInt(maxChoicesInput.getValue())); }
+            catch (Exception e) { c.setMaxChoices(0); }
             c.setStartDate(startDateInput.getValue());
             c.setEndDate(endDateInput.getValue());
             onSave.accept(c);
@@ -61,6 +68,7 @@ public class CampaignFormComponent {
 
         this.feedbackLabel = new Label("", 16, 288, 420, 16);
         this.feedbackLabel.setFont(new Font("Dialog", Font.PLAIN, 12));
+        this.feedbackLabel.setColor(new Color(239, 68, 68));
 
         formCard.addChild(campaignNameInput);
         formCard.addChild(registrationDateInput);
@@ -70,14 +78,42 @@ public class CampaignFormComponent {
         formCard.addChild(saveCampaignButton);
         formCard.addChild(feedbackLabel);
 
+        // --- Carte de gestion du statut et traitement auto ---
+        this.statusCard = new SurfaceCard(0, 320, 100, 180,
+            new java.awt.Color(22, 28, 39), new java.awt.Color(48, 60, 82), 12);
+
+        Label statusTitleLabel = new Label("Statut de la campagne", 16, 14, 300, 18);
+        statusTitleLabel.setFont(new Font("Dialog", Font.BOLD, 13));
+        statusTitleLabel.setColor(new Color(160, 175, 202));
+
+        this.statusValueLabel = new Label("—", 16, 36, 300, 20);
+        this.statusValueLabel.setFont(new Font("Dialog", Font.BOLD, 14));
+        this.statusValueLabel.setColor(new Color(239, 244, 252));
+
+        // Boutons de transition de statut
+        this.openBtn = statusBtn("Ouvrir (OPEN)", new Color(34, 120, 60), () -> changeStatus("OPEN"));
+        this.closeBtn = statusBtn("Fermer (CLOSED)", new Color(180, 100, 20), () -> changeStatus("CLOSED"));
+        this.autoBtn = statusBtn("Lancer traitement auto", new Color(59, 100, 220), () -> runAutoAssignment());
+        this.validateBtn = statusBtn("Valider (VALIDATED)", new Color(80, 60, 160), () -> changeStatus("VALIDATED"));
+        this.archiveBtn = statusBtn("Archiver", new Color(80, 80, 80), () -> changeStatus("ARCHIVED"));
+
+        statusCard.addChild(statusTitleLabel);
+        statusCard.addChild(statusValueLabel);
+        statusCard.addChild(openBtn);
+        statusCard.addChild(closeBtn);
+        statusCard.addChild(autoBtn);
+        statusCard.addChild(validateBtn);
+        statusCard.addChild(archiveBtn);
+
         root.addChild(formCard);
+        root.addChild(statusCard);
     }
 
     public BaseComp getRoot() { return root; }
-
     public void onSave(Consumer<Campaign> cb) { this.onSave = cb; }
 
     public void refreshFrom(Campaign campaign) {
+        this.currentCampaign = campaign;
         if (campaign == null) {
             campaignNameInput.setValue("");
             registrationDateInput.setValue("");
@@ -85,6 +121,8 @@ public class CampaignFormComponent {
             startDateInput.setValue("");
             endDateInput.setValue("");
             feedbackLabel.setText("Aucune campagne active.");
+            statusValueLabel.setText("—");
+            updateButtonVisibility(null);
             return;
         }
         campaignNameInput.setValue(campaign.getName());
@@ -92,12 +130,109 @@ public class CampaignFormComponent {
         maxChoicesInput.setValue(String.valueOf(campaign.getMaxChoices()));
         startDateInput.setValue(campaign.getStartDate());
         endDateInput.setValue(campaign.getEndDate());
-        feedbackLabel.setText("Statut actuel: " + campaign.getStatus());
+        feedbackLabel.setText("");
+        updateStatusLabel(campaign.getStatus());
+        updateButtonVisibility(campaign.getStatus());
     }
 
-    public void setFeedback(String msg) { feedbackLabel.setText(msg == null ? "" : msg); }
+    public void setFeedback(String msg) {
+        feedbackLabel.setText(msg == null ? "" : msg);
+    }
+
+    private void changeStatus(String newStatus) {
+        if (currentCampaign == null) {
+            feedbackLabel.setText("Aucune campagne active.");
+            return;
+        }
+        boolean ok = campaignService.updateStatus(currentCampaign.getId(), newStatus);
+        if (ok) {
+            currentCampaign.setStatus(newStatus);
+            updateStatusLabel(newStatus);
+            updateButtonVisibility(newStatus);
+            feedbackLabel.setColor(new Color(34, 197, 94));
+            feedbackLabel.setText("Statut mis a jour : " + newStatus);
+        } else {
+            feedbackLabel.setColor(new Color(239, 68, 68));
+            feedbackLabel.setText("Echec mise a jour statut.");
+        }
+    }
+
+    private void runAutoAssignment() {
+        if (currentCampaign == null) {
+            feedbackLabel.setText("Aucune campagne active.");
+            return;
+        }
+        if (!"CLOSED".equals(currentCampaign.getStatus())) {
+            feedbackLabel.setColor(new Color(239, 68, 68));
+            feedbackLabel.setText("La campagne doit etre en statut CLOSED avant le traitement.");
+            return;
+        }
+        feedbackLabel.setColor(new Color(160, 175, 202));
+        feedbackLabel.setText("Traitement en cours...");
+        autoBtn.setEnabled(false);
+
+        int campaignId = currentCampaign.getId();
+        new Thread(() -> {
+            ServiceResult result = assignmentService.runAutoAssignment(campaignId);
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                autoBtn.setEnabled(true);
+                if (result.isSuccess()) {
+                    currentCampaign.setStatus("PROCESSING");
+                    updateStatusLabel("PROCESSING");
+                    updateButtonVisibility("PROCESSING");
+                    feedbackLabel.setColor(new Color(34, 197, 94));
+                    feedbackLabel.setText(result.getMessage());
+                } else {
+                    feedbackLabel.setColor(new Color(239, 68, 68));
+                    feedbackLabel.setText(result.getMessage());
+                }
+            });
+        }, "auto-assignment").start();
+    }
+
+    private void updateStatusLabel(String status) {
+        statusValueLabel.setText("Statut : " + (status == null ? "—" : status));
+        Color c;
+        switch (status == null ? "" : status) {
+            case "OPEN"       -> c = new Color(34, 197, 94);
+            case "CLOSED"     -> c = new Color(245, 158, 11);
+            case "PROCESSING" -> c = new Color(59, 130, 246);
+            case "VALIDATED"  -> c = new Color(168, 85, 247);
+            case "ARCHIVED"   -> c = new Color(100, 116, 139);
+            default           -> c = new Color(239, 244, 252);
+        }
+        statusValueLabel.setColor(c);
+        statusValueLabel.invalidate();
+    }
+
+    private void updateButtonVisibility(String status) {
+        // Rendre tous invisibles d'abord
+        openBtn.setVisible(false);
+        closeBtn.setVisible(false);
+        autoBtn.setVisible(false);
+        validateBtn.setVisible(false);
+        archiveBtn.setVisible(false);
+
+        if (status == null) return;
+        switch (status) {
+            case "PREPARATION" -> { openBtn.setVisible(true); }
+            case "OPEN"        -> { closeBtn.setVisible(true); }
+            case "CLOSED"      -> { autoBtn.setVisible(true); openBtn.setVisible(true); }
+            case "PROCESSING"  -> { validateBtn.setVisible(true); }
+            case "VALIDATED"   -> { archiveBtn.setVisible(true); }
+        }
+    }
+
+    private PrimaryButton statusBtn(String text, Color bg, Runnable action) {
+        PrimaryButton b = new PrimaryButton(text, 0, 0, 200, 30, action);
+        b.setBackground(bg);
+        b.setForeground(new Color(239, 244, 252));
+        b.setVisible(false);
+        return b;
+    }
 
     public void onResize(int mainW) {
+        root.setBounds(0, 0, mainW, 520);
         formCard.setBounds(0, 0, mainW, 310);
         campaignNameInput.setBounds(16, 42, mainW - 32, 62);
         registrationDateInput.setBounds(16, 108, 220, 62);
@@ -106,5 +241,13 @@ public class CampaignFormComponent {
         endDateInput.setBounds(252, 174, 180, 62);
         saveCampaignButton.setBounds(16, 250, 130, 34);
         feedbackLabel.setBounds(16, 288, mainW - 32, 16);
+
+        statusCard.setBounds(0, 320, mainW, 190);
+        int bx = 16;
+        openBtn.setBounds(bx, 64, 200, 30);
+        closeBtn.setBounds(bx, 64, 220, 30);
+        autoBtn.setBounds(bx, 64, 240, 30);
+        validateBtn.setBounds(bx, 64, 220, 30);
+        archiveBtn.setBounds(bx, 64, 160, 30);
     }
 }

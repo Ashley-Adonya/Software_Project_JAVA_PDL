@@ -65,8 +65,8 @@ public class StatsStudentsSection {
     public void update(StatisticsService.StatsSummary s, List<User> reg, List<User> unreg) {
         registeredStudents = new ArrayList<>(reg);
         unregisteredStudents = new ArrayList<>(unreg);
-        renderList(regList, registeredStudents, true);
-        renderList(unregList, unregisteredStudents, false);
+        renderList(regList, regScroll, registeredStudents, true);
+        renderList(unregList, unregScroll, unregisteredStudents, false);
     }
 
     private SurfaceCard studentCard(User u, int w) {
@@ -84,13 +84,14 @@ public class StatsStudentsSection {
         return card;
     }
 
-    private void renderList(BaseComp list, List<User> users, boolean registered) {
+    private void renderList(BaseComp list, ScrollView parentScroll, List<User> users, boolean registered) {
         clearChildren(list);
         if (users.isEmpty()) {
             Label l = new Label("Aucun", 8, 8, 120, 20);
             l.setFont(new java.awt.Font("Dialog", java.awt.Font.PLAIN, 12));
             l.setColor(new Color(100, 116, 139));
             list.addChild(l);
+            parentScroll.setContentHeight(60);
             return;
         }
         int w = list.getWidth() - 10;
@@ -102,6 +103,7 @@ public class StatsStudentsSection {
             list.addChild(card);
             y += 40;
         }
+        parentScroll.setContentHeight(y + 8);
     }
 
     private void filterStudents() {
@@ -112,7 +114,7 @@ public class StatsStudentsSection {
             String l = (u.getLogin() != null ? u.getLogin() : "").toLowerCase();
             if (n.contains(q) || l.contains(q)) filtered.add(u);
         }
-        renderList(unregList, filtered, false);
+        renderList(unregList, unregScroll, filtered, false);
     }
 
     public void onResize(int w, int h) {

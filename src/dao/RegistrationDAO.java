@@ -20,7 +20,7 @@ public class RegistrationDAO {
             if (conn == null) {
                 return -1;
             }
-            ps = conn.prepareStatement(sql, new String[]{"ID"})
+            ps = conn.prepareStatement(sql, new String[] { "ID" });
             ps.setInt(1, registration.getCampaignId());
             ps.setInt(2, registration.getStudentId());
             ps.setInt(3, registration.getSessionId());
