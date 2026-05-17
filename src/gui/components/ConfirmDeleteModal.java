@@ -47,8 +47,7 @@ public class ConfirmDeleteModal extends BaseComp {
      * @param window the parent BaseWindow used for modal layer management (openModal/closeTopLayer)
      */
     public ConfirmDeleteModal(BaseWindow window) {
-        System.out.println("Initializing ConfirmDeleteModal");
-        super(null);
+    	super(null);        
         this.window = window;
         
         // Fond semi-transparent qui couvre toute la fenêtre
@@ -87,6 +86,7 @@ public class ConfirmDeleteModal extends BaseComp {
         
         addChild(modalBackground);
         addChild(modalCard);
+        
     }
 
     /**
