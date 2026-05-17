@@ -3,7 +3,7 @@ package gui.components;
 import java.awt.Color;
 import java.awt.Font;
 import java.util.function.Consumer;
-import java.util.function.Runnable;
+import java.lang.Runnable;
 
 import components.Label;
 import main.BaseComp;

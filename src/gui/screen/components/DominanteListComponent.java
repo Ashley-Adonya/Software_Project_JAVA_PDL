@@ -15,6 +15,7 @@ import main.BaseComp;
 import main.BaseWindow;
 import model.Dominante;
 import service.DominanteService;
+import service.ServiceResult;
 
 /**
  * Composant de liste et gestion des dominantes (domaines d'étude).
@@ -31,6 +32,7 @@ import service.DominanteService;
  */
 public class DominanteListComponent {
     private final DominanteService dominanteService;
+    private final BaseWindow window;
     private final SurfaceCard backgroundCard;
     private final ScrollView dominantesScroll;
     private final BaseComp dominantesList;
@@ -39,12 +41,13 @@ public class DominanteListComponent {
     private Runnable onCreate = () -> {};
     private boolean darkMode = true;
 
-    public DominanteListComponent(BaseWindow window, DominanteService dominanteService) {
+public DominanteListComponent(BaseWindow window, DominanteService dominanteService) {
         this.dominanteService = dominanteService;
+        this.window = window;
         this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.dominantesScroll = new ScrollView(0, 0, 100, 100);
         this.dominantesList = dominantesScroll.getContent();
-
+        
         this.createButton = new Button("+ Nouvelle dominante", 0, 0, 210, 32, () -> onCreate.run());
         backgroundCard.addChild(createButton);
         backgroundCard.addChild(dominantesScroll);

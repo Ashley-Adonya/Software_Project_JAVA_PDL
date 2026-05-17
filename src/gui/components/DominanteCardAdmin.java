@@ -2,6 +2,7 @@ package gui.components;
 
 import java.awt.Color;
 import java.awt.Font;
+import main.BaseWindow;
 
 import components.Button;
 import components.Label;

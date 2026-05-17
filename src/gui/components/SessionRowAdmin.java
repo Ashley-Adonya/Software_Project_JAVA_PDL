@@ -2,6 +2,7 @@ package gui.components;
 
 import java.awt.Color;
 import java.awt.Font;
+import main.BaseWindow;
 
 import components.Button;
 import components.Label;
@@ -15,7 +16,7 @@ public class SessionRowAdmin extends SurfaceCard {
     private final Button manageButton;
     private final Button deleteButton;
 
-    public SessionRowAdmin(Runnable onEdit, Runnable onDelete) {
+    public SessionRowAdmin(Runnable onEdit, Runnable onDelete, BaseWindow window) {
         super(0, 0, 100, 66, Color.WHITE, new Color(231, 235, 242), 10);
 
         this.stripe = new SurfaceCard(0, 0, 4, 44, new Color(124, 92, 255), new Color(124, 92, 255), 4);
@@ -39,7 +40,13 @@ public class SessionRowAdmin extends SurfaceCard {
         this.manageButton.setBackground(new Color(59, 130, 246));
         this.manageButton.setForeground(Color.WHITE);
 
-        this.deleteButton = new Button("Suppr", 0, 0, 60, 26, onDelete);
+        // Bouton suppr avec confirmation
+        this.deleteButton = new Button("Suppr", 0, 0, 60, 26, () -> {
+            ConfirmDeleteModal confirmModal = new ConfirmDeleteModal(window);
+            confirmModal.setMessage("Êtes-vous sûr de vouloir supprimer cette session ? Cette action est irréversible.");
+            confirmModal.setOnConfirm(onDelete);
+            confirmModal.show();
+        });
         this.deleteButton.setBackground(new Color(255, 240, 240));
         this.deleteButton.setForeground(new Color(196, 61, 61));
 

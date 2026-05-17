@@ -18,6 +18,7 @@ import main.BaseComp;
 import main.BaseWindow;
 import model.Dominante;
 import model.SessionSlot;
+import service.ServiceResult;
 import service.DominanteService;
 import service.SessionService;
 
@@ -38,6 +39,7 @@ import service.SessionService;
 public class SessionListComponent {
     private final SessionService sessionService;
     private final DominanteService dominanteService;
+    private final BaseWindow window;
 
     private final SurfaceCard backgroundCard;
     private final ScrollView sessionsScroll;
@@ -55,6 +57,7 @@ public class SessionListComponent {
     public SessionListComponent(BaseWindow window, SessionService sessionService, DominanteService dominanteService) {
         this.sessionService = sessionService;
         this.dominanteService = dominanteService;
+        this.window = window;
 
         this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.sessionsScroll = new ScrollView(0, 0, 100, 100);
@@ -122,7 +125,15 @@ public class SessionListComponent {
             String dominanteName = d == null ? ("Dominante #" + s.getDominanteId()) : d.getName();
             if (!"Toutes les dominantes".equals(selected) && !selected.equals(dominanteName)) continue;
 
-            SessionRowAdmin row = new SessionRowAdmin(() -> onEditSession.accept(s), () -> sessionService.deleteSession(s.getId()));
+            SessionRowAdmin row = new SessionRowAdmin(() -> onEditSession.accept(s), () -> {
+    ServiceResult result = sessionService.deleteSession(s.getId());
+    if (result.isSuccess()) {
+        refresh(); // Refresh the list after successful deletion
+    } else {
+        // Show error message - for now just print to console
+        System.err.println("Error deleting session: " + result.getMessage());
+    }
+}, window);
             row.setDarkMode(darkMode);
             row.setBounds(0, y, sessionsScroll.getWidth() - 12, 66);
             int allocated = 0;
