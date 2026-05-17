@@ -12,9 +12,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Service de gestion des choix d'étudiants concernant les sessions de présentation.
- * Permet aux étudiants de créer, modifier et consulter leurs préférences de sessions
- * avec validation des doublons et contraintes de conflits horaires.
+ * Service for managing student choices regarding presentation sessions.
+ * Allows students to create, modify and consult their session preferences
+ * with validation of duplicates and time conflict constraints.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

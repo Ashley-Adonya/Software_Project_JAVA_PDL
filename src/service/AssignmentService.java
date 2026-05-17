@@ -16,12 +16,12 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Service central pour la gestion des attributions d'étudiants aux sessions.
+ * Central service for managing student assignments to sessions.
  * 
- * Nous avons implémenté deux modes d'action majeurs : 
- * 1. L'attribution manuelle par les administrateurs pour gérer les exceptions.
- * 2. L'attribution automatique basée sur un algorithme de type Stable Marriage,
- *    garantissant une équité optimale selon les vœux des étudiants.
+ * We have implemented two major modes of action:
+ * 1. Manual assignment by administrators to handle exceptions.
+ * 2. Automatic assignment based on a Stable Marriage type algorithm,
+ *    guaranteeing optimal fairness according to student preferences.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

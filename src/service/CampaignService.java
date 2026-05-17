@@ -6,11 +6,10 @@ import model.User;
 import java.util.List;
 
 /**
- * Service orchestrant le cycle de vie des campagnes d'attribution.
- * 
- * Nous avons implémenté une machine à états finis pour garantir que les campagnes
- * passent par des étapes cohérentes (PREPARATION, OPEN, CLOSED, PROCESSING, VALIDATED, ARCHIVED).
- * Ce service permet également la configuration des paramètres de campagne.
+ * Service orchestrating the lifecycle of attribution campaigns.
+ * Implements a finite state machine to ensure campaigns follow coherent steps
+ * (PREPARATION, OPEN, CLOSED, PROCESSING, VALIDATED, ARCHIVED).
+ * Also provides campaign configuration capabilities.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
@@ -55,9 +54,8 @@ public class CampaignService {
             return ServiceResult.fail("Campagne introuvable");
         }
 
-        String current = c.getStatus();
-        if (!isAllowedTransition(current, nextStatus)) {
-            return ServiceResult.fail("Transition interdite: " + current + " -> " + nextStatus);
+        if (!isAllowedTransition(c.getStatus(), nextStatus)) {
+            return ServiceResult.fail("Transition interdite: " + c.getStatus() + " -> " + nextStatus);
         }
 
         boolean ok = campaignDAO.updateStatus(campaignId, nextStatus);
@@ -67,6 +65,46 @@ public class CampaignService {
         CacheManager.invalidatePrefix("campaign:");
         CacheManager.invalidatePrefix("stats:");
         return ServiceResult.ok("Statut mis a jour: " + nextStatus);
+    }
+
+    /**
+     * Checks if a status transition is allowed according to the campaign lifecycle.
+     * Forward transitions follow the standard workflow:
+     * PREPARATION -> OPEN -> CLOSED -> PROCESSING -> VALIDATED -> ARCHIVED
+     * Backward transitions to PREPARATION are always allowed to reset a campaign.
+     * 
+     * @param current current status
+     * @param nextStatus desired next status
+     * @return true if the transition is allowed, false otherwise
+     */
+    public boolean isAllowedTransition(String current, String nextStatus) {
+        if (current == null || nextStatus == null) {
+            return false;
+        }
+        if (current.equals(nextStatus)) {
+            return true;
+        }
+        // Allow going back to PREPARATION from any status
+        if ("PREPARATION".equals(nextStatus)) {
+            return true;
+        }
+        // Forward transitions
+        if ("PREPARATION".equals(current) && "OPEN".equals(nextStatus)) {
+            return true;
+        }
+        if ("OPEN".equals(current) && "CLOSED".equals(nextStatus)) {
+            return true;
+        }
+        if ("CLOSED".equals(current) && "PROCESSING".equals(nextStatus)) {
+            return true;
+        }
+        if ("PROCESSING".equals(current) && "VALIDATED".equals(nextStatus)) {
+            return true;
+        }
+        if ("VALIDATED".equals(current) && "ARCHIVED".equals(nextStatus)) {
+            return true;
+        }
+        return false;
     }
 
     public boolean updateSettings(int campaignId, String name, String registrationDay, String startDate, String endDate, int maxChoices) {
@@ -95,30 +133,5 @@ public class CampaignService {
 
     private String safe(String value) {
         return value == null ? "" : value.trim().toUpperCase();
-    }
-
-    private boolean isAllowedTransition(String current, String nextStatus) {
-        if (current == null || nextStatus == null) {
-            return false;
-        }
-        if (current.equals(nextStatus)) {
-            return true;
-        }
-        if ("PREPARATION".equals(current) && "OPEN".equals(nextStatus)) {
-            return true;
-        }
-        if ("OPEN".equals(current) && "CLOSED".equals(nextStatus)) {
-            return true;
-        }
-        if ("CLOSED".equals(current) && "PROCESSING".equals(nextStatus)) {
-            return true;
-        }
-        if ("PROCESSING".equals(current) && "VALIDATED".equals(nextStatus)) {
-            return true;
-        }
-        if ("VALIDATED".equals(current) && "ARCHIVED".equals(nextStatus)) {
-            return true;
-        }
-        return false;
     }
 }

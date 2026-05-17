@@ -1,9 +1,10 @@
 package model;
 
 /**
- * Représente une campagne d'attribution de sessions de présentation de dominantes.
- * Une campagne définit les paramètres temporels, le nombre maximum de choix autorisés,
- * et l'état (PREPARATION, OPEN, CLOSED) du processus d'inscription.
+ * Represents an attribution campaign for dominant presentation sessions.
+ * A campaign defines temporal parameters, maximum number of allowed choices,
+ * and the state (PREPARATION, OPEN, CLOSED, PROCESSING, VALIDATED, ARCHIVED) 
+ * of the registration process.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

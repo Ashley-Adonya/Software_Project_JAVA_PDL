@@ -8,6 +8,14 @@ import java.util.ArrayList;
 import java.util.List;
 import model.Campaign;
 
+/**
+ * Data Access Object for Campaign entity.
+ * Handles all database operations related to campaigns including CRUD operations,
+ * status transitions, and queries.
+ * 
+ * @author Sado Adonya & VIEYRA Kolawole
+ * @version 1.0
+ */
 public class CampaignDAO {
 
     public int create(Campaign campaign) {
@@ -71,7 +79,7 @@ public class CampaignDAO {
     }
 
     public List<Campaign> findByPromo(String promo) {
-        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by FROM campaigns WHERE promo = ? ORDER BY registration_day DESC";
+        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE promo = ? ORDER BY registration_day DESC";
         List<Campaign> result = new ArrayList<Campaign>();
         Connection conn = null;
         PreparedStatement ps = null;
@@ -98,7 +106,7 @@ public class CampaignDAO {
     }
 
     public List<Campaign> findByStatus(String status) {
-        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by FROM campaigns WHERE status = ? ORDER BY registration_day DESC";
+        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE status = ? ORDER BY registration_day DESC";
         List<Campaign> result = new ArrayList<Campaign>();
         Connection conn = null;
         PreparedStatement ps = null;
@@ -116,6 +124,8 @@ public class CampaignDAO {
             }
         } catch (Exception e) {
             System.err.println("CampaignDAO.findByStatus: " + e.getMessage());
+            System.err.println("SQL: " + sql);
+            e.printStackTrace();
         } finally {
             close(rs);
             close(ps);

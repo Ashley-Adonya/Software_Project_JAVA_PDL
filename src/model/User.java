@@ -1,9 +1,9 @@
 package model;
 
 /**
- * Représente un utilisateur du système (administrateur ou étudiant).
- * Contient les identifiants de connexion, le profil (rôle, promotion), l'état d'activation,
- * et des informations personnelles (nom complet).
+ * Represents a user of the system (administrator or student).
+ * Contains login credentials, profile (role, promotion), activation state,
+ * and personal information (full name).
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

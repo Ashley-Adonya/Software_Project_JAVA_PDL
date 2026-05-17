@@ -11,7 +11,7 @@ import model.User;
 public class UserDAO {
 
     public User findByLoginAndPassword(String login, String password) {
-        String sql = "SELECT id, login, password, full_name, role, promo, is_active FROM users "
+         String sql = "SELECT id, login, password, full_name, role, promo, is_active FROM users "
                 + "WHERE login = ? AND password = ? AND is_active = 1";
         Connection conn = null;
         PreparedStatement ps = null;

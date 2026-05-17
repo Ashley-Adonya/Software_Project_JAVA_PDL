@@ -9,9 +9,9 @@ import java.util.Map;
 import java.util.List;
 
 /**
- * Service de gestion des sessions de présentation des dominantes.
- * Offre des opérations de création, modification, suppression et recherche de sessions
- * avec respect des états de campagne et validation des capacités.
+ * Service for managing dominant presentation sessions.
+ * Offers creation, modification, deletion and search operations for sessions
+ * with respect to campaign states and capacity validation.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

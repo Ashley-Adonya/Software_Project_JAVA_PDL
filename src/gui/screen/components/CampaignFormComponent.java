@@ -14,9 +14,10 @@ import model.Campaign;
 import service.AssignmentService;
 import service.CampaignService;
 import service.ServiceResult;
+import model.User;
 
 public class CampaignFormComponent {
-    private final BaseWindow window;
+    // private final BaseWindow window;
     private final BaseComp root;
     private final SurfaceCard formCard;
     private final SurfaceCard statusCard;
@@ -26,6 +27,7 @@ public class CampaignFormComponent {
     private final ReusableLabeledInput startDateInput;
     private final ReusableLabeledInput endDateInput;
     private final PrimaryButton saveCampaignButton;
+    private final PrimaryButton preparationBtn;
     private final PrimaryButton openBtn;
     private final PrimaryButton closeBtn;
     private final PrimaryButton autoBtn;
@@ -40,7 +42,7 @@ public class CampaignFormComponent {
     private AssignmentService assignmentService;
 
     public CampaignFormComponent(BaseWindow window, User currentUser) {
-        this.window = window;
+        // this.window = window;
         this.campaignService = new CampaignService(currentUser);
         this.assignmentService = new AssignmentService();
         this.root = new BaseComp(null);
@@ -91,6 +93,7 @@ public class CampaignFormComponent {
         this.statusValueLabel.setColor(new Color(239, 244, 252));
 
         // Boutons de transition de statut
+        this.preparationBtn = statusBtn("Préparation", new Color(100, 100, 100), () -> changeStatus("PREPARATION"));
         this.openBtn = statusBtn("Ouvrir (OPEN)", new Color(34, 120, 60), () -> changeStatus("OPEN"));
         this.closeBtn = statusBtn("Fermer (CLOSED)", new Color(180, 100, 20), () -> changeStatus("CLOSED"));
         this.autoBtn = statusBtn("Lancer traitement auto", new Color(59, 100, 220), () -> runAutoAssignment());
@@ -99,6 +102,7 @@ public class CampaignFormComponent {
 
         statusCard.addChild(statusTitleLabel);
         statusCard.addChild(statusValueLabel);
+        statusCard.addChild(preparationBtn);
         statusCard.addChild(openBtn);
         statusCard.addChild(closeBtn);
         statusCard.addChild(autoBtn);
@@ -206,7 +210,8 @@ public class CampaignFormComponent {
     }
 
     private void updateButtonVisibility(String status) {
-        // Rendre tous invisibles d'abord
+        // Reset all buttons to invisible first
+        preparationBtn.setVisible(false);
         openBtn.setVisible(false);
         closeBtn.setVisible(false);
         autoBtn.setVisible(false);
@@ -214,12 +219,26 @@ public class CampaignFormComponent {
         archiveBtn.setVisible(false);
 
         if (status == null) return;
-        switch (status) {
-            case "PREPARATION" -> { openBtn.setVisible(true); }
-            case "OPEN"        -> { closeBtn.setVisible(true); }
-            case "CLOSED"      -> { autoBtn.setVisible(true); }
-            case "PROCESSING"  -> { validateBtn.setVisible(true); }
-            case "VALIDATED"   -> { archiveBtn.setVisible(true); }
+        
+        // Show buttons based on allowed transitions from current status
+        if (campaignService.isAllowedTransition(status, "PREPARATION")) {
+            preparationBtn.setVisible(true);
+        }
+        if (campaignService.isAllowedTransition(status, "OPEN")) {
+            openBtn.setVisible(true);
+        }
+        if (campaignService.isAllowedTransition(status, "CLOSED")) {
+            closeBtn.setVisible(true);
+        }
+        if (campaignService.isAllowedTransition(status, "VALIDATED")) {
+            validateBtn.setVisible(true);
+        }
+        if (campaignService.isAllowedTransition(status, "ARCHIVED")) {
+            archiveBtn.setVisible(true);
+        }
+        // Auto assignment only available from CLOSED
+        if ("CLOSED".equals(status)) {
+            autoBtn.setVisible(true);
         }
     }
 
@@ -244,10 +263,16 @@ public class CampaignFormComponent {
 
         statusCard.setBounds(0, 320, mainW, 190);
         int bx = 16;
-        openBtn.setBounds(bx, 64, 200, 30);
-        closeBtn.setBounds(bx, 64, 220, 30);
-        autoBtn.setBounds(bx, 64, 240, 30);
-        validateBtn.setBounds(bx, 64, 220, 30);
-        archiveBtn.setBounds(bx, 64, 160, 30);
+        int by = 64;
+        int bwidth = 200;
+        int bheight = 30;
+        int spacing = 10;
+        
+        preparationBtn.setBounds(bx, by, bwidth, bheight);
+        openBtn.setBounds(bx, by + (bheight + spacing), bwidth, bheight);
+        closeBtn.setBounds(bx, by + 2 * (bheight + spacing), bwidth, bheight);
+        autoBtn.setBounds(bx, by + 3 * (bheight + spacing), bwidth, bheight);
+        validateBtn.setBounds(bx, by + 4 * (bheight + spacing), bwidth, bheight);
+        archiveBtn.setBounds(bx, by + 5 * (bheight + spacing), bwidth, bheight);
     }
 }

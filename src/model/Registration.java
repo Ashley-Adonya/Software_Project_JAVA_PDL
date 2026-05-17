@@ -1,9 +1,9 @@
 package model;
 
 /**
- * Représente l'inscription d'un étudiant à une session suite à l'attribution.
- * Enregistre l'étudiant, la session assignée, le rang du choix original (si applicable),
- * et le statut de l'inscription (ASSIGNED, MANUAL_ASSIGNED, etc.).
+ * Represents a student's registration to a session following assignment.
+ * Records the student, assigned session, original choice rank (if applicable),
+ * and registration status (ALLOCATED, WAITLIST, REJECTED, CANCELLED).
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0

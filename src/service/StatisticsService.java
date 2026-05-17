@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Service de génération de statistiques sur les campagnes d'attribution.
- * Fournit des informations agrégées sur les taux de remplissage, les inscriptions,
- * les étudiants non inscrits et l'état général des campagnes.
+ * Service for generating statistics on attribution campaigns.
+ * Provides aggregated information on fill rates, registrations,
+ * unregistered students, and overall campaign status.
  * 
  * @author Sado Adonya & VIEYRA Kolawole
  * @version 1.0
