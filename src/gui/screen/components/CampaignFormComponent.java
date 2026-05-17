@@ -217,7 +217,7 @@ public class CampaignFormComponent {
         switch (status) {
             case "PREPARATION" -> { openBtn.setVisible(true); }
             case "OPEN"        -> { closeBtn.setVisible(true); }
-            case "CLOSED"      -> { autoBtn.setVisible(true); openBtn.setVisible(true); }
+            case "CLOSED"      -> { autoBtn.setVisible(true); }
             case "PROCESSING"  -> { validateBtn.setVisible(true); }
             case "VALIDATED"   -> { archiveBtn.setVisible(true); }
         }

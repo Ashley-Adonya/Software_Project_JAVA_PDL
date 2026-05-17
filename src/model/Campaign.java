@@ -18,6 +18,11 @@ public class Campaign {
     private int maxChoices;
     private String status;
     private int createdBy;
+    private String openedAt;
+    private String closedAt;
+    private String processedAt;
+    private String validatedAt;
+    private String archivedAt;
 
     public Campaign() {
     }
@@ -86,6 +91,37 @@ public class Campaign {
          return createdBy; 
     }
     public void setCreatedBy(int createdBy) {
-         this.createdBy = createdBy; 
+        this.createdBy = createdBy;
+    }
+
+    public String getOpenedAt() {
+        return openedAt;
+    }
+    public void setOpenedAt(String openedAt) {
+        this.openedAt = openedAt;
+    }
+    public String getClosedAt() {
+        return closedAt;
+    }
+    public void setClosedAt(String closedAt) {
+        this.closedAt = closedAt;
+    }
+    public String getProcessedAt() {
+        return processedAt;
+    }
+    public void setProcessedAt(String processedAt) {
+        this.processedAt = processedAt;
+    }
+    public String getValidatedAt() {
+        return validatedAt;
+    }
+    public void setValidatedAt(String validatedAt) {
+        this.validatedAt = validatedAt;
+    }
+    public String getArchivedAt() {
+        return archivedAt;
+    }
+    public void setArchivedAt(String archivedAt) {
+        this.archivedAt = archivedAt;
     }
 }

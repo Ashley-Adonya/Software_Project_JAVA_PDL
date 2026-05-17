@@ -45,7 +45,7 @@ public class CampaignDAO {
     }
 
     public Campaign findById(int id) {
-        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by FROM campaigns WHERE id = ?";
+        String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by, opened_at, closed_at, processed_at, validated_at, archived_at FROM campaigns WHERE id = ?";
         Connection conn = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -54,6 +54,21 @@ public class CampaignDAO {
             if (conn == null) {
                 return null;
             }
+            ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                return mapCampaign(rs);
+            }
+        } catch (Exception e) {
+            System.err.println("CampaignDAO.findById: " + e.getMessage());
+        } finally {
+            close(rs);
+            close(ps);
+            close(conn);
+        }
+        return null;
+    }
             ps = conn.prepareStatement(sql);
             ps.setInt(1, id);
             rs = ps.executeQuery();
@@ -214,7 +229,12 @@ public class CampaignDAO {
                 rs.getString("end_date"),
                 rs.getInt("max_choices"),
                 rs.getString("status"),
-                rs.getInt("created_by")
+                rs.getInt("created_by"),
+                rs.getString("opened_at"),
+                rs.getString("closed_at"),
+                rs.getString("processed_at"),
+                rs.getString("validated_at"),
+                rs.getString("archived_at")
         );
     }
 
