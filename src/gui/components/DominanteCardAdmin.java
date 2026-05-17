@@ -56,6 +56,7 @@ public class DominanteCardAdmin extends SurfaceCard {
 
         // Bouton suppr avec confirmation
         this.deleteButton = new Button("Suppr", 0, 0, 74, 28, () -> {
+            System.out.println("Deleting dominante with id: " + codeLabel.getText());
             ConfirmDeleteModal confirmModal = new ConfirmDeleteModal(window);
             confirmModal.setMessage("Êtes-vous sûr de vouloir supprimer cette dominante ? Cette action est irréversible.");
             confirmModal.setOnConfirm(onDelete);

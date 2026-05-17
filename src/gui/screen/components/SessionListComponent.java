@@ -19,6 +19,7 @@ import main.BaseWindow;
 import model.Dominante;
 import model.SessionSlot;
 import service.ServiceResult;
+import gui.screen.AdminDashboardView;
 import service.DominanteService;
 import service.SessionService;
 
@@ -40,6 +41,7 @@ public class SessionListComponent {
     private final SessionService sessionService;
     private final DominanteService dominanteService;
     private final BaseWindow window;
+    private final AdminDashboardView view;
 
     private final SurfaceCard backgroundCard;
     private final ScrollView sessionsScroll;
@@ -54,10 +56,11 @@ public class SessionListComponent {
     private int currentCampaignId = -1;
     private boolean darkMode = true;
 
-    public SessionListComponent(BaseWindow window, SessionService sessionService, DominanteService dominanteService) {
+    public SessionListComponent(BaseWindow window, SessionService sessionService, DominanteService dominanteService, AdminDashboardView view) {
         this.sessionService = sessionService;
         this.dominanteService = dominanteService;
         this.window = window;
+        this.view = view;
 
         this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.sessionsScroll = new ScrollView(0, 0, 100, 100);

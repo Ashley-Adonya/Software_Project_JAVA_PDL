@@ -3,7 +3,6 @@ package gui.components;
 import java.awt.Color;
 import java.awt.Font;
 import java.util.function.Consumer;
-import java.lang.Runnable;
 
 import components.Label;
 import main.BaseComp;
@@ -14,9 +13,8 @@ import gui.components.SurfaceCard;
 /**
  * Modal de confirmation pour les actions irréversibles comme la suppression.
  */
-public class ConfirmDeleteModal {
+public class ConfirmDeleteModal extends BaseComp {
     private final BaseWindow window;
-    private final BaseComp root;
     private final SurfaceCard modalBackground;
     private final SurfaceCard modalCard;
     private final Label titleLabel;
@@ -28,8 +26,9 @@ public class ConfirmDeleteModal {
     private Runnable onCancel = () -> {};
 
     public ConfirmDeleteModal(BaseWindow window) {
+        System.out.println("Initializing ConfirmDeleteModal");
+        super(null);
         this.window = window;
-        this.root = new BaseComp(null);
         
         // Fond semi-transparent qui couvre toute la fenêtre
         this.modalBackground = new SurfaceCard(0, 0, 100, 100, 
@@ -49,27 +48,26 @@ public class ConfirmDeleteModal {
         
         this.cancelButton = new PrimaryButton("Annuler", 60, 130, 120, 36, () -> {
             if (onCancel != null) onCancel.run();
-            hide();
+            window.closeTopLayer();
         });
         this.cancelButton.setBackground(new Color(80, 80, 80));
         
         this.confirmButton = new PrimaryButton("Confirmer", 220, 130, 120, 36, () -> {
-            if (onConfirm != null) onConfirm.run();
-            hide();
+            System.out.println("Confirm button clicked in ConfirmDeleteModal");
+            onConfirm.run();
+            window.closeTopLayer();
         });
         this.confirmButton.setBackground(new Color(239, 68, 68));
-        
+        System.out.println("ConfirmDeleteModal initialized");
         modalCard.addChild(titleLabel);
         modalCard.addChild(messageLabel);
         modalCard.addChild(cancelButton);
         modalCard.addChild(confirmButton);
         
-        root.addChild(modalBackground);
-        root.addChild(modalCard);
+        addChild(modalBackground);
+        addChild(modalCard);
     }
 
-    public BaseComp getRoot() { return root; }
-    
     public void setOnConfirm(Runnable cb) { this.onConfirm = cb; }
     public void setOnCancel(Runnable cb) { this.onCancel = cb; }
     
@@ -78,16 +76,17 @@ public class ConfirmDeleteModal {
     }
     
     public void show() {
+        // Set our own bounds to match the window content
+        setBounds(0, 0, window.getContent().getWidth(), window.getContent().getHeight());
+        
         modalBackground.setBounds(0, 0, window.getContent().getWidth(), window.getContent().getHeight());
         int w = window.getContent().getWidth();
         int h = window.getContent().getHeight();
         modalCard.setBounds((w - 400) / 2, (h - 200) / 2, 400, 200);
-        root.setVisible(true);
-        window.requestRenderIfNeeded();
+        window.openModal(this);
     }
     
     public void hide() {
-        root.setVisible(false);
-        window.requestRenderIfNeeded();
+        window.closeTopLayer();
     }
 }

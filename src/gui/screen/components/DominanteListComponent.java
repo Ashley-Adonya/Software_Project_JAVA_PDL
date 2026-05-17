@@ -16,9 +16,10 @@ import main.BaseWindow;
 import model.Dominante;
 import service.DominanteService;
 import service.ServiceResult;
+import gui.screen.AdminDashboardView;
 
 /**
- * Composant de liste et gestion des dominantes (domaines d'étude).
+ * Composant de liste et gestion des dominantes .
  * Affiche les dominantes existantes sous forme de cartes et permet création et édition.
  * 
  * Responsabilités :
@@ -33,6 +34,7 @@ import service.ServiceResult;
 public class DominanteListComponent {
     private final DominanteService dominanteService;
     private final BaseWindow window;
+    private final AdminDashboardView view;
     private final SurfaceCard backgroundCard;
     private final ScrollView dominantesScroll;
     private final BaseComp dominantesList;
@@ -41,9 +43,10 @@ public class DominanteListComponent {
     private Runnable onCreate = () -> {};
     private boolean darkMode = true;
 
-public DominanteListComponent(BaseWindow window, DominanteService dominanteService) {
+public DominanteListComponent(BaseWindow window, DominanteService dominanteService, AdminDashboardView view) {
         this.dominanteService = dominanteService;
         this.window = window;
+        this.view = view;
         this.backgroundCard = new SurfaceCard(0, 0, 100, 100, new Color(14, 18, 26), new Color(14, 18, 26), 0);
         this.dominantesScroll = new ScrollView(0, 0, 100, 100);
         this.dominantesList = dominantesScroll.getContent();
@@ -94,15 +97,19 @@ public DominanteListComponent(BaseWindow window, DominanteService dominanteServi
         }
 
         for (Dominante d : list) {
-            DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(d), () -> {
-                // Call the actual delete service
-                ServiceResult result = dominanteService.deleteById(d.getId());
-                if (result.isSuccess()) {
-                    refresh(); // Refresh the list after successful deletion
-                } else {
-                    // Show error message - for now just print to console
-                    System.err.println("Error deleting dominante: " + result.getMessage());
-                }
+            final Dominante finalD = d;
+            DominanteCardAdmin card = new DominanteCardAdmin(() -> onEdit.accept(finalD), () -> {
+                // Show confirmation modal before deletion
+                view.showConfirmDeleteModal("Êtes-vous sûr de vouloir supprimer cette dominante ? Cette action est irréversible.", () -> {
+                    // Call the actual delete service
+                    ServiceResult result = dominanteService.deleteById(finalD.getId());
+                    if (result.isSuccess()) {
+                        refresh(); // Refresh the list after successful deletion
+                    } else {
+                        // Show error message - for now just print to console
+                        System.err.println("Error deleting dominante: " + result.getMessage());
+                    }
+                });
             }, window);
             card.setDarkMode(darkMode);
             Color accent = parseDominanteColor(d.getColor());

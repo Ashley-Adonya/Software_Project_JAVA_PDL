@@ -8,6 +8,7 @@ import gui.screen.components.CampaignFormComponent;
 import gui.screen.components.DominanteListComponent;
 import gui.screen.components.SessionListComponent;
 import gui.screen.components.StatsPanelComponent;
+import gui.components.ConfirmDeleteModal;
 import main.BaseComp;
 import main.BaseWindow;
 import model.Campaign;
@@ -76,9 +77,9 @@ public class AdminDashboardView {
         dashboardRoot.setShortcutActions(
             () -> sectionManager.setSection("dominantes"), () -> sectionManager.setSection("sessions"),
             () -> sectionManager.setSection("campagne"), () -> sectionManager.setSection("stats"));
-        sessionListComponent = new SessionListComponent(window, sessionService, dominanteService);
+        sessionListComponent = new SessionListComponent(window, sessionService, dominanteService, this);
         campaignFormComponent = new CampaignFormComponent(window);
-        dominanteListComponent = new DominanteListComponent(window, dominanteService);
+        dominanteListComponent = new DominanteListComponent(window, dominanteService, this);
         statsPanelComponent = new StatsPanelComponent(window, statisticsService);
 
         sessionModals = new AdminSessionModal(this); manageSessionModal = new AdminManageSessionModal(this);
@@ -136,6 +137,13 @@ public class AdminDashboardView {
     void refreshSessions() { sessionListComponent.setActiveCampaignId(activeCampaign == null ? -1 : activeCampaign.getId()); sessionListComponent.refresh(); }
     void refreshCampagne() { campaignFormComponent.refreshFrom(activeCampaign); }
     void refreshStats() { statsPanelComponent.refresh(activeCampaign == null ? -1 : activeCampaign.getId(), user != null ? user.getPromo() : null); }
+
+    public void showConfirmDeleteModal(String message, Runnable onConfirm) {
+        ConfirmDeleteModal modal = new ConfirmDeleteModal(window);
+        modal.setMessage(message);
+        modal.setOnConfirm(onConfirm);
+        window.openModal(modal);
+    }
     void refreshDashboard() { dashboardRoot.refreshDashboardRoot(activeCampaign); }
     void requestRender() { window.requestRenderIfNeeded(); }
     private void refreshCurrent() { refreshAll(); sectionManager.refreshActiveSection(); }
