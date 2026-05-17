@@ -69,21 +69,6 @@ public class CampaignDAO {
         }
         return null;
     }
-            ps = conn.prepareStatement(sql);
-            ps.setInt(1, id);
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                return mapCampaign(rs);
-            }
-        } catch (Exception e) {
-            System.err.println("CampaignDAO.findById: " + e.getMessage());
-        } finally {
-            close(rs);
-            close(ps);
-            close(conn);
-        }
-        return null;
-    }
 
     public List<Campaign> findByPromo(String promo) {
         String sql = "SELECT id, name, promo, registration_day, start_date, end_date, max_choices, status, created_by FROM campaigns WHERE promo = ? ORDER BY registration_day DESC";

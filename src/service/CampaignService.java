@@ -16,9 +16,11 @@ import java.util.List;
  */
 public class CampaignService {
     private final CampaignDAO campaignDAO;
+    private final User currentUser;
 
-    public CampaignService() {
+    public CampaignService(User currentUser) {
         this.campaignDAO = new CampaignDAO();
+        this.currentUser = currentUser;
     }
 
     public int createCampaign(Campaign campaign) {
@@ -33,6 +35,10 @@ public class CampaignService {
         }
         if (campaign.getStatus() == null || campaign.getStatus().trim().isEmpty()) {
             campaign.setStatus("PREPARATION");
+        }
+        // Set createdBy from current user
+        if (currentUser != null) {
+            campaign.setCreatedBy(currentUser.getId());
         }
         int id = campaignDAO.create(campaign);
         if (id > 0) {

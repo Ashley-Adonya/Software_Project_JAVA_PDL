@@ -54,7 +54,7 @@ public class AdminDashboardView {
         this.window = window;
         this.user = user;
         this.onLogout = onLogout;
-        campaignService = new CampaignService(); sessionService = new SessionService();
+        campaignService = new CampaignService(user); sessionService = new SessionService();
         dominanteService = new DominanteService(); statisticsService = new StatisticsService();
         registrationService = new RegistrationService(); registrationDAO = new dao.RegistrationDAO();
         campaignResolver = new CampaignResolver(campaignService, user != null ? user.getPromo() : null);
