@@ -1,1 +1,7 @@
 /gui/
+/components/
+/main/
+/dao/
+/model/
+/service/
+/util/

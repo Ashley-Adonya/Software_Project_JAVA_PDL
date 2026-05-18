@@ -103,8 +103,7 @@ public class AdminDashboardView {
         refreshButton.setBackground(new Color(44, 54, 76));
 
         sectionHost = new BaseComp(null);
-        dashboardRoot = new AdminDashboardRoot(statisticsService);
-        dashboardRoot.setShortcutActions(
+        dashboardRoot = new AdminDashboardRoot(statisticsService,
             () -> sectionManager.setSection("dominantes"), () -> sectionManager.setSection("sessions"),
             () -> sectionManager.setSection("campagne"), () -> sectionManager.setSection("stats"));
         sessionListComponent = new SessionListComponent(window, sessionService, dominanteService, this);

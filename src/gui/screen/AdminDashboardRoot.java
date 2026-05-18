@@ -40,18 +40,23 @@ public class AdminDashboardRoot extends BaseComp {
      * Constructs the dashboard root view.
      * <p>
      * Immediately builds the full component tree (hero card, KPI cards, shortcut card,
-     * alert card, and note label) inside a scroll view.
+     * alert card, and note label) inside a scroll view. The given runnables are wired
+     * directly as click handlers for the quick-action shortcut buttons.
      * </p>
      *
      * @param statisticsService the service providing aggregated statistics for the KPI cards
+     * @param onDom   runnable executed when the "Dominantes" shortcut is clicked
+     * @param onSess  runnable executed when the "Sessions" shortcut is clicked
+     * @param onCamp  runnable executed when the "Campagne" shortcut is clicked
+     * @param onStats runnable executed when the "Statistiques" shortcut is clicked
      */
-    public AdminDashboardRoot(StatisticsService statisticsService) {
+    public AdminDashboardRoot(StatisticsService statisticsService, Runnable onDom, Runnable onSess, Runnable onCamp, Runnable onStats) {
         super(null);
         this.statisticsService = statisticsService;
-        build();
+        build(onDom, onSess, onCamp, onStats);
     }
 
-    private void build() {
+    private void build(Runnable onDom, Runnable onSess, Runnable onCamp, Runnable onStats) {
         mainScroll = new ScrollView(0, 0, 100, 100);
         scrollContent = mainScroll.getContent();
 
@@ -71,10 +76,10 @@ public class AdminDashboardRoot extends BaseComp {
         shortcutCard = card(new Color(23, 30, 45));
         Label shortcutTitle = label("Actions Rapides", 20, 16, 200, 18, 14, true, new Color(160, 175, 202));
         Color btnBg = new Color(59, 130, 246);
-        goDominantes = shortcutBtn("Dominantes", 0,  0, 0, 0, btnBg);
-        goSessions   = shortcutBtn("Sessions",   0,  0, 0, 0, btnBg);
-        goCampagne   = shortcutBtn("Campagne",   0,  0, 0, 0, btnBg);
-        goStats      = shortcutBtn("Statistiques", 0,  0, 0, 0, btnBg);
+        goDominantes = shortcutBtn("Dominantes", 0, 0, 0, 0, btnBg, onDom);
+        goSessions   = shortcutBtn("Sessions",   0, 0, 0, 0, btnBg, onSess);
+        goCampagne   = shortcutBtn("Campagne",   0, 0, 0, 0, btnBg, onCamp);
+        goStats      = shortcutBtn("Statistiques", 0, 0, 0, 0, btnBg, onStats);
         shortcutCard.addChild(shortcutTitle); shortcutCard.addChild(goDominantes);
         shortcutCard.addChild(goSessions); shortcutCard.addChild(goCampagne); shortcutCard.addChild(goStats);
 
@@ -91,23 +96,6 @@ public class AdminDashboardRoot extends BaseComp {
         scrollContent.addChild(shortcutCard); scrollContent.addChild(alertCard);
         scrollContent.addChild(noteLabel);
         addChild(mainScroll);
-    }
-
-    /**
-     * Registers callback actions for the four quick-action shortcut buttons.
-     * <p>
-     * Each callback is invoked when the corresponding shortcut button is clicked,
-     * allowing navigation to the Dominantes, Sessions, Campagne, or Stats sections.
-     * </p>
-     *
-     * @param onDom   runnable executed when the "Dominantes" shortcut is clicked
-     * @param onSess  runnable executed when the "Sessions" shortcut is clicked
-     * @param onCamp  runnable executed when the "Campagne" shortcut is clicked
-     * @param onStats runnable executed when the "Statistiques" shortcut is clicked
-     */
-    public void setShortcutActions(Runnable onDom, Runnable onSess, Runnable onCamp, Runnable onStats) {
-        goDominantes.setOnClick(onDom); goSessions.setOnClick(onSess);
-        goCampagne.setOnClick(onCamp); goStats.setOnClick(onStats);
     }
 
     /**
@@ -220,8 +208,8 @@ public class AdminDashboardRoot extends BaseComp {
         l.setFont(new java.awt.Font("Dialog", bold ? java.awt.Font.BOLD : java.awt.Font.PLAIN, size));
         l.setColor(color); return l;
     }
-    private PrimaryButton shortcutBtn(String text, int x, int y, int w, int h, Color bg) {
-        PrimaryButton b = new PrimaryButton(text, x, y, w, h, null);
+    private PrimaryButton shortcutBtn(String text, int x, int y, int w, int h, Color bg, Runnable onClick) {
+        PrimaryButton b = new PrimaryButton(text, x, y, w, h, onClick);
         b.setBackground(bg); b.setForeground(Color.WHITE);
         b.setFont(new java.awt.Font("Dialog", java.awt.Font.BOLD, 13));
         return b;

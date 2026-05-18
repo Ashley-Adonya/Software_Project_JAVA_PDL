@@ -1,8 +1,8 @@
 package gui.screen;
 
-import gui.components.AlertContainer;
 import java.util.ArrayList;
 import java.util.List;
+import gui.components.AlertContainer;
 import model.Campaign;
 import service.StatisticsService;
 

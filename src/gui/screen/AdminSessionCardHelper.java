@@ -86,7 +86,7 @@ class AdminSessionCardHelper {
 
         if (!check.hasConflict && !check.sessionFull) {
             Button regBtn = actionBtn("Inscrire", cardWidth - 100, 16, 76, 26, new Color(30, 93, 57), () -> {
-                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, s.getId(), false);
+                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, s.getId(), true);
                 updateFeedback(feedbackLabel, r, null);
                 refreshCallback.run();
             });
@@ -94,7 +94,7 @@ class AdminSessionCardHelper {
         } else if (check.sessionFull && check.alternatives != null && !check.alternatives.isEmpty()) {
             Button altBtn = actionBtn("Alternative", cardWidth - 110, 16, 90, 26, new Color(245, 158, 11), () -> {
                 RegistrationService.AlternativeSession alt = check.alternatives.get(0);
-                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, alt.sessionId, false);
+                ServiceResult r = view.getRegistrationService().registerStudent(campaignId, studentId, alt.sessionId, true);
                 updateFeedback(feedbackLabel, r, alt.title);
                 refreshCallback.run();
             });

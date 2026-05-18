@@ -39,7 +39,7 @@ public class SessionDAO {
      *         connection could not be obtained or an error occurred
      */
     public int create(SessionSlot session) {
-        String sql = "INSERT INTO sessions (campaign_id, dominante_id, title, room, session_date, start_minute, end_minute, capacity, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)";
+        String sql = "INSERT INTO sessions (campaign_id, dominante_id, title, room, session_date, start_minute, end_minute, capacity, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = null;
         PreparedStatement ps = null;
         ResultSet keys = null;

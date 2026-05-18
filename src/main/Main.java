@@ -1,3 +1,4 @@
+package main;
 import gui.navigation.ScreenRouter;
 import main.BaseWindow;
 

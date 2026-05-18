@@ -114,6 +114,9 @@ public class AdminSessionModal {
             if (domId <= 0) { feedback.setText("Selectionnez une dominante."); return; }
             
             SessionSlot slot = edit ? existing : new SessionSlot();
+            if (!edit) {
+                slot.setCreatedBy(view.getUser().getId());
+            }
             slot.setCampaignId(view.getActiveCampaign().getId());
             slot.setDominanteId(domId);
             slot.setTitle(titleInput.getValue());
